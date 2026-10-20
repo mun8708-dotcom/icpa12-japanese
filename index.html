@@ -53,16 +53,17 @@
       border: 1.5px solid rgba(255,255,255,0.8);
     }
     
-    /* Top Bar */
+    /* Top Bar - 상시 유지 */
     .top-bar { padding: 12px 16px; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(8px); border-bottom: 1.5px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
     .user-section { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-    .user-tag { font-size: 11px; font-weight: 700; background: var(--primary-light); color: var(--primary); padding: 5px 10px; border-radius: 20px; border: 1px solid #C7D2FE; }
-    .point-tag { font-size: 11px; font-weight: 800; background: #FEF3C7; color: #D97706; padding: 5px 10px; border-radius: 20px; cursor: pointer; border: 1px solid #FDE68A; transition: 0.15s; }
+    .user-tag { font-size: 11px; font-weight: 700; background: var(--primary-light); color: var(--primary); padding: 5px 10px; border-radius: 20px; border: 1px solid #C7D2FE; display: inline-block; }
+    .point-tag { font-size: 11px; font-weight: 800; background: #FEF3C7; color: #D97706; padding: 5px 10px; border-radius: 20px; cursor: pointer; border: 1px solid #FDE68A; transition: 0.15s; display: inline-block; }
     .point-tag:active { transform: scale(0.95); }
-    .btn-shop-top { font-size: 11px; font-weight: 700; color: #047857; background: #D1FAE5; border: 1px solid #A7F3D0; border-radius: 12px; padding: 5px 10px; cursor: pointer; transition: 0.15s; }
+    .btn-shop-top { font-size: 11px; font-weight: 700; color: #047857; background: #D1FAE5; border: 1px solid #A7F3D0; border-radius: 12px; padding: 5px 10px; cursor: pointer; transition: 0.15s; display: inline-block; }
     .btn-shop-top:active { transform: scale(0.95); }
-    .btn-logout { font-size: 11px; color: var(--text-muted); background: white; border: 1px solid var(--border); border-radius: 12px; padding: 4px 8px; cursor: pointer; }
-    .app-version { font-size: 11px; color: #94A3B8; font-weight: 700; }
+    .btn-logout { font-size: 11px; font-weight: 700; color: var(--text-muted); background: white; border: 1.5px solid var(--border); border-radius: 12px; padding: 5px 9px; cursor: pointer; display: inline-block; }
+    .btn-logout:hover { color: var(--danger); border-color: #FECACA; }
+    .app-version { font-size: 11px; color: #94A3B8; font-weight: 700; cursor: pointer; user-select: none; }
 
     .screen { display: none; padding: 20px; flex-direction: column; flex-grow: 1; }
     .screen.active { display: flex; }
@@ -229,8 +230,8 @@
     .wrong-item { background: white; border: 2px solid var(--border); border-bottom: 4px solid var(--border); border-radius: 14px; padding: 14px; font-size: 13px; }
     .wrong-item-top { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 11px; color: var(--text-muted); font-weight: 700; }
 
-    /* 교사용 테이블 */
-    .admin-bar { display: flex; gap: 8px; margin-bottom: 12px; }
+    /* 교사용 대시보드 테이블 */
+    .admin-bar { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
     .teacher-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 11px; }
     .teacher-table th, .teacher-table td { border: 1px solid var(--border); padding: 7px 4px; text-align: center; }
     .teacher-table th { background: #F1F5F9; font-weight: 800; }
@@ -240,21 +241,22 @@
 <body>
 
 <div class="app-container">
-  <!-- 상단 상태바 -->
+  <!-- 상단 상태바 (항상 표시) -->
   <div class="top-bar">
     <div class="user-section">
-      <span class="user-tag" id="user-badge" style="display:none;">👤 게스트</span>
-      <span class="point-tag" id="user-points" style="display:none;" onclick="openShopModal()">💰 0P</span>
-      <button class="btn-shop-top" id="btn-shop" style="display:none;" onclick="openShopModal()">🛒 칭호 상점</button>
-      <button class="btn-logout" id="btn-logout" style="display:none;" onclick="handleLogout()">변경</button>
+      <span class="user-tag" id="user-badge">👤 게스트</span>
+      <span class="point-tag" id="user-points" onclick="openShopModal()">💰 0P</span>
+      <button class="btn-shop-top" id="btn-shop" onclick="openShopModal()">🛒 칭호 상점</button>
+      <button class="btn-logout" id="btn-logout" onclick="handleLogout()">변경</button>
     </div>
-    <span class="app-version">v2.6 🎌</span>
+    <!-- 버전 텍스트를 5번 연속 터치해도 관리자 진입 가능 -->
+    <span class="app-version" onclick="handleSecretTeacherTap()" title="교사용 관리자 진입 (연속 5번 터치)">v2.6 🎌</span>
   </div>
 
   <!-- 1. 로그인 화면 -->
   <div class="screen active" id="screen-login">
     <div style="text-align: center; margin: 15px 0 10px 0;">
-      <span style="font-size: 46px; display: inline-block; animation: popIn 0.4s ease;">🍱</span>
+      <span style="font-size: 46px; display: inline-block; animation: popIn 0.4s ease; cursor: pointer;" onclick="handleSecretTeacherTap()">🍱</span>
     </div>
     <h1 style="font-size: 24px; font-weight: 900; color: var(--primary); text-align: center; cursor: pointer; user-select: none;" onclick="handleSecretTeacherTap()">가나고 GO!</h1>
     <p style="font-size: 13px; color: var(--text-muted); text-align: center; margin-bottom: 24px; font-weight: 600;">고교 일본어 기초 완성 & 학급 대항 리그</p>
@@ -278,9 +280,10 @@
   <!-- 2. 메인 화면 -->
   <div class="screen" id="screen-main">
     <div style="background: white; border: 2px solid var(--border); border-radius: 14px; padding: 12px 14px; margin-bottom: 14px; display: flex; align-items: center; gap: 10px;">
-      <span style="font-size: 24px;">🍙</span>
+      <!-- 주먹밥 아이콘을 5번 연속 터치하면 관리자 진입 -->
+      <span style="font-size: 26px; cursor: pointer; user-select: none;" onclick="handleSecretTeacherTap()" title="비밀 터치 5회">🍙</span>
       <div style="flex-grow: 1;">
-        <div style="font-size: 13px; font-weight: 800; color: var(--text);" id="main-class-tag">소속: 학급 불러오는 중...</div>
+        <div style="font-size: 13px; font-weight: 800; color: var(--text);" id="main-class-tag" onclick="handleSecretTeacherTap()">소속: 학급 불러오는 중...</div>
         <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">문제를 풀어 우리 반 포인트를 올려보세요!</div>
       </div>
     </div>
@@ -450,7 +453,8 @@
     <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">실명 매핑, 포인트 관리 및 모드별 랭킹 초기화</p>
 
     <div class="admin-bar">
-      <button class="btn-3d btn-danger-3d" style="padding: 10px; font-size: 12px;" onclick="resetSpeedrunRanking()">🔥 전체 스피드런 랭킹 초기화</button>
+      <button class="btn-3d btn-danger-3d" style="padding: 10px; font-size: 12px;" onclick="resetSpeedrunRanking()">🔥 전체 스피드런 랭킹만 초기화</button>
+      <button class="btn-3d" style="background:#475569; border-bottom:4px solid #1E293B; padding: 10px; font-size: 12px;" onclick="resetAllStudentData()">⚠️ 전체 학생 진도 및 포인트 완전 초기화</button>
     </div>
 
     <table class="teacher-table">
@@ -529,7 +533,7 @@
 </div>
 
 <script>
-  // ---------------- [폭죽 이펙트 헬퍼 함수] ----------------
+  // ---------------- [폭죽 이펙트] ----------------
   function triggerCelebration() {
     if (typeof confetti === 'function') {
       confetti({
@@ -664,6 +668,7 @@
   }
 
   window.addEventListener('DOMContentLoaded', () => {
+    applyUserUI(); // 기본 상단 UI 즉시 표시
     const saved = localStorage.getItem('ganago_user');
     if (saved) {
       try {
@@ -684,13 +689,10 @@
   });
 
   function applyUserUI() {
-    document.getElementById('user-badge').innerText = `${currentUser.title} ${currentUser.nick}`;
-    document.getElementById('user-badge').style.display = 'inline-block';
+    const badgeText = currentUser.id ? `${currentUser.title} ${currentUser.nick}` : "👤 게스트";
+    document.getElementById('user-badge').innerText = badgeText;
     updatePointUI();
-    document.getElementById('user-points').style.display = 'inline-block';
-    document.getElementById('btn-shop').style.display = 'inline-block';
-    document.getElementById('btn-logout').style.display = 'inline-block';
-    document.getElementById('main-class-tag').innerText = `소속: [${currentUser.className}] | 문제를 풀고 우리 반 순위를 올리세요!`;
+    document.getElementById('main-class-tag').innerText = `소속: [${currentUser.className || '기타 학급'}] | 문제를 풀고 우리 반 순위를 올리세요!`;
   }
 
   function updatePointUI() {
@@ -736,10 +738,7 @@
         records: { all: null, hira: null, kata: null },
         points: 0, lastLoginDate: ""
       };
-      document.getElementById('user-badge').style.display = 'none';
-      document.getElementById('user-points').style.display = 'none';
-      document.getElementById('btn-shop').style.display = 'none';
-      document.getElementById('btn-logout').style.display = 'none';
+      applyUserUI();
       document.getElementById('input-student-id').value = '';
       document.getElementById('input-student-name').value = '';
       document.getElementById('input-student-nick').value = '';
@@ -883,15 +882,33 @@
   }
 
   function resetSpeedrunRanking() {
-    if (confirm("⚠️ 모든 학생의 스피드런 기록을 전부 초기화하시겠습니까?\n\n(학생 계정, 포인트, 진도는 유지되며 스피드런 기록만 삭제됩니다)")) {
+    if (confirm("⚠️ 모든 학생의 스피드런 기록만 전부 초기화하시겠습니까?\n\n(학생 계정, 포인트, 진도는 유지됩니다)")) {
       studentList.forEach(item => {
         db.ref(`students/${item.id}/records`).set({ all: null, hira: null, kata: null });
         db.ref(`students/${item.id}/time`).remove();
       });
       if (currentUser.id) currentUser.records = { all: null, hira: null, kata: null };
       localStorage.setItem('ganago_user', JSON.stringify(currentUser));
-      alert("전체 스피드런 랭킹 기록이 초기화되었습니다! 🔥");
+      alert("전체 스피드런 랭킹 기록이 깔끔하게 초기화되었습니다! 🔥");
       renderTeacherTable();
+    }
+  }
+
+  function resetAllStudentData() {
+    const input = prompt("⚠️ 정말로 모든 학생의 계정, 진도, 포인트를 전부 초기화하시겠습니까?\n\n실행하려면 '초기화'를 입력하세요:");
+    if (input === '초기화') {
+      db.ref('students').remove().then(() => {
+        localStorage.removeItem('ganago_user');
+        currentUser = {
+          id: "", name: "", nick: "", className: "기타 학급",
+          title: "🐣 가나 병아리", ownedTitles: ["t_chick"],
+          progress: { vocab: false, grammar: false, culture: false },
+          records: { all: null, hira: null, kata: null },
+          points: 0, lastLoginDate: ""
+        };
+        alert("모든 학생 데이터베이스가 완전히 초기화되었습니다.");
+        goToMain();
+      });
     }
   }
 
@@ -992,11 +1009,11 @@
       { word: "はな", meaning: "꽃 / 코 (1단원)", audio: "はな" },
       { word: "やま", meaning: "산 (1단원)", audio: "やま" },
       { word: "かわ", meaning: "강 (1단원)", audio: "かわ" },
-      { word: "そ라", meaning: "하늘 (1단원)", audio: "そら" }
+      { word: "そら", meaning: "하늘 (1단원)", audio: "そら" }
     ],
     2: [
       { word: "ちち", meaning: "아버지 (2단원)", audio: "ちち" },
-      { word: "はは", meaning: "어머니 (2단원)", audio: "は하" },
+      { word: "はは", meaning: "어머니 (2단원)", audio: "はは" },
       { word: "あに", meaning: "형 / 오빠 (2단원)", audio: "あに" },
       { word: "あね", meaning: "누나 / 언니 (2단원)", audio: "あね" },
       { word: "いもうと", meaning: "여동생 (2단원)", audio: "いもうと" },
@@ -1052,36 +1069,36 @@
       { meaning: "출신 소개: 한국에서 왔습니다", tokens: ["かんこく", "から", "きました"], dummy: ["まで", "にほん"], audio: "かんこくからきました" },
       { meaning: "남의 집 방문 인사: 실례하겠습니다", tokens: ["おじゃま", "します"], dummy: ["どうぞ", "いらっしゃい"], audio: "おじゃまします" },
       { meaning: "가족 소개: 아버지와 어머니입니다", tokens: ["ちち", "と", "はは", "です"], dummy: ["の", "に"], audio: "ちちとははです" },
-      { meaning: "소유 표현: 이것은 저의 책입니다", tokens: ["これ", "は", "わたし", "の", "ほん", "です"], dummy: ["それ", "が"], audio: "これはわたしのほんです" },
+      { meaning: "소유 표현: 이것은 저의 책입니다", tokens: ["これ", "は", "わたし", "の", "ほん", "です"], dummy: ["それ", "が"], audio: "这是我的书" },
       { meaning: "위치 묻기: 화장실은 어디입니까?", tokens: ["トイレ", "は", "どこ", "ですか"], dummy: ["だれ", "いくら"], audio: "トイレはどこですか" },
       { meaning: "사물 지칭: 그것은 사전입니다", tokens: ["それ", "は", "じしょ", "です"], dummy: ["あれ", "の"], audio: "それはじしょです" },
       { meaning: "먼 사물 지칭: 저것은 도서관입니다", tokens: ["あれ", "は", "としょかん", "です"], dummy: ["これ", "に"], audio: "あれはとしょかんです" },
       { meaning: "인물 묻기: 저 사람은 누구입니까?", tokens: ["あのひと", "は", "だれ", "ですか"], dummy: ["どこ", "なに"], audio: "あのひとはだれですか" },
-      { meaning: "학년 소개: 고등학교 2학년입니다", tokens: ["こうこう", "2ねんせい", "です"], dummy: ["から", "まで"], audio: "こうこうにねんせいです" },
+      { meaning: "학년 소개: 고등학교 2학년입니다", tokens: ["こうこう", "2ねんせい", "です"], dummy: ["から", "まで"], audio: "こうこうにねん세いです" },
       { meaning: "거주 표현: 서울에 살고 있습니다", tokens: ["ソウル", "に", "すんで", "います"], dummy: ["で", "から"], audio: "ソウルにすんでいます" }
     ],
     3: [
       { meaning: "식당 주문: 우동으로 하겠습니다", tokens: ["うどん", "に", "します"], dummy: ["を", "が", "で"], audio: "うどんにします" },
       { meaning: "식사 전 예절 인사: 잘 먹겠습니다", tokens: ["いただきます"], dummy: ["ごちそうさま", "いらっしゃい"], audio: "いただきます" },
-      { meaning: "식사 후 예절 인사: 잘 먹었습니다", tokens: ["ごちそう", "さま", "でした"], dummy: ["ありがとう", "おいしい"], audio: "ごちそうさ까지でした" },
-      { meaning: "시간 표현: 수업은 9시부터입니다", tokens: ["じゅぎょう", "は", "9じ", "から", "입니다"], dummy: ["まで", "と"], audio: "じゅぎょうはくじからです" },
+      { meaning: "식사 후 예절 인사: 잘 먹었습니다", tokens: ["ごちそう", "さま", "でした"], dummy: ["ありがとう", "おいしい"], audio: "ごちそうさまでした" },
+      { meaning: "시간 표현: 수업은 9시부터입니다", tokens: ["じゅぎょう", "は", "9じ", "から", "です"], dummy: ["まで", "と"], audio: "じゅぎょうはくじからです" },
       { meaning: "비교 표현: 메밀국수가 더 맛있습니다", tokens: ["そば", "の", "ほう", "が", "おいしい", "です"], dummy: ["より", "も"], audio: "そばのほうがおいしいです" },
       { meaning: "메뉴 추천 묻기: 추천 메뉴는 무엇입니까?", tokens: ["おすすめ", "は", "なん", "ですか"], dummy: ["どこ", "だれ"], audio: "おすすめはなんですか" },
       { meaning: "수량 주문: 라면 하나 주세요", tokens: ["ラーメン", "ひとつ", "ください"], dummy: ["ふたつ", "を"], audio: "ラーメンひとつください" },
       { meaning: "물 요청: 물 부탁드립니다", tokens: ["おみず", "おねがい", "します"], dummy: ["どうぞ", "から"], audio: "おみずおねがいします" },
-      { meaning: "음식 맛 평가: 조금 맵습니다", tokens: ["すこし", "からい", "です"], dummy: ["あまい", "とても"], audio: "すこしからいです" },
+      { meaning: "음식 맛 평가: 조금 맵습니다", tokens: ["すこし", "からい", "입니다"], dummy: ["あまい", "とても"], audio: "すこしからいです" },
       { meaning: "식사 권유: 함께 먹지 않겠습니까?", tokens: ["いっしょに", "たべませんか"], dummy: ["たべます", "いきます"], audio: "いっしょにたべませんか" }
     ],
     4: [
-      { meaning: "취향 표현: 여행을 좋아합니다", tokens: ["りょこう", "が", "すき", "です"], dummy: ["を", "は", "に"], audio: "りょこうがすきです" },
+      { meaning: "취향 표현: 여행을 좋아합니다", tokens: ["りょこう", "が", "すき", "입니다"], dummy: ["を", "は", "に"], audio: "りょこうがすきです" },
       { meaning: "가격 묻기: 이 컵은 얼마입니까?", tokens: ["この", "コップ", "は", "いくら", "ですか"], dummy: ["いくつ", "どこ"], audio: "このコップはいくらですか" },
       { meaning: "물건 주문: 이것 두 개 주세요", tokens: ["これ", "ふたつ", "ください"], dummy: ["ひとつ", "みっつ"], audio: "これふたつください" },
       { meaning: "선택/추천 묻기: 어느 것이 맛있습니까?", tokens: ["どれ", "が", "おいしい", "ですか"], dummy: ["どの", "なに"], audio: "どれがおいしいですか" },
-      { meaning: "감탄/칭찬: 정말 예쁩니다", tokens: ["ほんとうに", "きれい", "です"], dummy: ["あまり", "すこし"], audio: "ほんとうにきれいです" },
-      { meaning: "원하는 것 표현: 새 공책을 갖고 싶습니다", tokens: ["あたらしい", "ノート", "가", "ほしい", "です"], dummy: ["すき", "を"], audio: "あたらしいノートがほしいです" },
+      { meaning: "감탄/칭찬: 정말 예쁩니다", tokens: ["ほんとうに", "きれい", "입니다"], dummy: ["あまり", "すこし"], audio: "ほんとうにきれいです" },
+      { meaning: "원하는 것 표현: 새 공책을 갖고 싶습니다", tokens: ["あたらしい", "ノート", "が", "ほしい", "です"], dummy: ["すき", "을"], audio: "あたらしいノートがほしいです" },
       { meaning: "수량 표현: 사과를 세 개 샀습니다", tokens: ["りんご", "を", "みっつ", "かいました"], dummy: ["ふたつ", "が"], audio: "りんごをみっつかいました" },
       { meaning: "권유 응답: 네, 그렇게 합시다", tokens: ["はい", "そう", "しましょう"], dummy: ["いいえ", "どうぞ"], audio: "はいそうしましょう" },
-      { meaning: "상태 설명: 이 방은 조용합니다", tokens: ["この", "へや", "は", "しずか", "입니다"], dummy: ["きれい", "に"], audio: "このへやはしずかです" },
+      { meaning: "상태 설명: 이 방은 조용합니다", tokens: ["この", "へや", "は", "しずか", "です"], dummy: ["きれい", "に"], audio: "このへやはしずかです" },
       { meaning: "가격 평가: 매우 쌉니다", tokens: ["とても", "やすい", "입니다"], dummy: ["たかい", "あまり"], audio: "とてもやすいです" }
     ]
   };
@@ -1093,7 +1110,7 @@
     { kana: "さ", ans: "사", options: ["사", "키", "치", "라", "세"] },
     { kana: "わ", ans: "와", options: ["와", "레", "네", "아", "오"] },
     { kana: "れ", ans: "레", options: ["레", "와", "네", "루", "로"] },
-    { kana: "ね", ans: "네", options: ["네", "와", "레", "누", "메"] },
+    { kana: "네", ans: "네", options: ["네", "와", "레", "누", "메"] },
     { kana: "る", ans: "루", options: ["루", "로", "우", "마", "라"] },
     { kana: "ろ", ans: "로", options: ["로", "루", "소", "모", "코"] },
     { kana: "あ", ans: "아", options: ["아", "오", "메", "와", "무"] },
@@ -1129,7 +1146,7 @@
     { kana: "マ", ans: "마", options: ["마", "무", "아", "호", "유"] },
     { kana: "ミ", ans: "미", options: ["미", "니", "시", "사", "치"] },
     { kana: "ム", ans: "무", options: ["무", "마", "스", "라", "누"] },
-    { kana: "ラ", ans: "라", options: ["라", "우", "후", "루", "와"] },
+    { kana: "라", ans: "라", options: ["라", "우", "후", "루", "와"] },
     { kana: "ル", ans: "루", options: ["루", "레", "라", "로", "노"] },
     { kana: "レ", ans: "레", options: ["레", "루", "와", "네", "소"] },
     { kana: "ロ", ans: "로", options: ["로", "코", "루", "고", "유"] }
