@@ -51,7 +51,7 @@ let currentUser = {
   lastLoginDate: ""
 };
 
-// 실시간 DB 데이터 반영 리스너 (서버 리셋 시 로컬스토리지 역동기화 방지)
+// 실시간 DB 데이터 반영 리스너 (서버 리셋 시 로컬 저장소 동시 갱신)
 db.ref('students').on('value', (snapshot) => {
   const data = snapshot.val();
   if (data) {
@@ -73,6 +73,8 @@ db.ref('students').on('value', (snapshot) => {
         currentUser.points = 0;
         currentUser.progress = { vocab: false, grammar: false, culture: false };
         currentUser.records = { all: null, hira: null, kata: null };
+        currentUser.title = "🐣 가나 병아리";
+        currentUser.ownedTitles = ["t_chick"];
         localStorage.setItem('ganago_user', JSON.stringify(currentUser));
         updateBadges();
         updatePointUI();
@@ -84,6 +86,8 @@ db.ref('students').on('value', (snapshot) => {
       currentUser.points = 0;
       currentUser.progress = { vocab: false, grammar: false, culture: false };
       currentUser.records = { all: null, hira: null, kata: null };
+      currentUser.title = "🐣 가나 병아리";
+      currentUser.ownedTitles = ["t_chick"];
       localStorage.setItem('ganago_user', JSON.stringify(currentUser));
       updateBadges();
       updatePointUI();
@@ -174,30 +178,72 @@ function updatePointUI() {
   document.getElementById('user-points').innerText = `💰 ${currentUser.points || 0}P`;
 }
 
+// 옵션 A: 학번 숫자 정제 및 실명 1회 귀속 잠금
 function handleLogin() {
-  const id = document.getElementById('input-student-id').value.trim();
+  const rawId = document.getElementById('input-student-id').value.trim();
   const name = document.getElementById('input-student-name').value.trim();
   let nick = document.getElementById('input-student-nick').value.trim();
 
-  if (!nick) nick = name;
+  const cleanId = rawId.replace(/[^0-9]/g, '');
 
-  if (!id || !name) {
-    alert("학번과 실명을 입력해주세요!");
+  if (!cleanId || !name) {
+    alert("학번과 실명을 정확히 입력해주세요!");
     return;
   }
 
-  currentUser.id = id;
-  currentUser.name = name;
-  currentUser.nick = nick;
-  currentUser.className = parseClassName(id);
-  if (!currentUser.records) currentUser.records = { all: null, hira: null, kata: null };
-  if (!currentUser.ownedTitles) currentUser.ownedTitles = ["t_chick"];
-  if (!currentUser.title) currentUser.title = "🐣 가나 병아리";
+  if (cleanId.length < 3) {
+    alert("올바른 학번 형식을 입력해주세요. (예: 20315)");
+    return;
+  }
 
-  applyUserUI();
-  checkDailyAttendance();
-  syncWithDB();
-  goToMain();
+  if (!nick) {
+    nick = name;
+  }
+
+  db.ref('students/' + cleanId).once('value').then(snapshot => {
+    const existing = snapshot.val();
+
+    if (existing && existing.name) {
+      if (existing.name !== name) {
+        alert(`❌ 로그인 실패!\n\n학번 [${cleanId}]은 이미 [${existing.name}] 학생으로 등록되어 있습니다.\n본인의 학번과 실명을 정확히 입력하세요.`);
+        return;
+      }
+      
+      currentUser.id = cleanId;
+      currentUser.name = existing.name;
+      currentUser.nick = nick;
+      currentUser.className = existing.className || parseClassName(cleanId);
+      currentUser.title = existing.title || "🐣 가나 병아리";
+      currentUser.ownedTitles = existing.ownedTitles || ["t_chick"];
+      currentUser.progress = existing.progress || { vocab: false, grammar: false, culture: false };
+      currentUser.records = existing.records || { all: null, hira: null, kata: null };
+      currentUser.points = typeof existing.points === 'number' ? existing.points : 0;
+      currentUser.lastLoginDate = existing.lastLoginDate || "";
+
+      applyUserUI();
+      checkDailyAttendance();
+      syncWithDB();
+      goToMain();
+    } else {
+      currentUser.id = cleanId;
+      currentUser.name = name;
+      currentUser.nick = nick;
+      currentUser.className = parseClassName(cleanId);
+      currentUser.title = "🐣 가나 병아리";
+      currentUser.ownedTitles = ["t_chick"];
+      currentUser.progress = { vocab: false, grammar: false, culture: false };
+      currentUser.records = { all: null, hira: null, kata: null };
+      currentUser.points = 0;
+      currentUser.lastLoginDate = "";
+
+      applyUserUI();
+      checkDailyAttendance();
+      syncWithDB();
+      goToMain();
+    }
+  }).catch(err => {
+    alert("로그인 확인 중 통신 오류가 발생했습니다: " + err.message);
+  });
 }
 
 function handleLogout() {
@@ -363,12 +409,15 @@ function adminGrantPoint(studentId, studentName) {
   }
 }
 
+// 개별 학생 초기화 (칭호 포함 리셋)
 function resetSingleStudent(studentId, studentName) {
-  if (confirm(`⚠️ [${studentName}] 학생의 모든 진도, 포인트, 스피드런 기록을 0으로 초기화하시겠습니까?\n(계정 명단은 그대로 유지됩니다)`)) {
+  if (confirm(`⚠️ [${studentName}] 학생의 모든 진도, 포인트, 스피드런 기록, 보유 칭호를 초기화하시겠습니까?\n(계정 명단은 그대로 유지됩니다)`)) {
     const resetData = {
       progress: { vocab: false, grammar: false, culture: false },
       records: { all: null, hira: null, kata: null },
       points: 0,
+      title: "🐣 가나 병아리",
+      ownedTitles: ["t_chick"],
       updatedAt: Date.now()
     };
 
@@ -377,11 +426,13 @@ function resetSingleStudent(studentId, studentName) {
         currentUser.progress = resetData.progress;
         currentUser.records = resetData.records;
         currentUser.points = 0;
+        currentUser.title = "🐣 가나 병아리";
+        currentUser.ownedTitles = ["t_chick"];
         localStorage.setItem('ganago_user', JSON.stringify(currentUser));
         applyUserUI();
         updateBadges();
       }
-      alert(`[${studentName}] 학생의 진도와 포인트가 0으로 초기화되었습니다.`);
+      alert(`[${studentName}] 학생의 진도, 포인트, 칭호가 기본값으로 초기화되었습니다.`);
     }).catch(err => {
       alert("초기화 실패: " + err.message);
     });
@@ -405,8 +456,9 @@ function resetSpeedrunRanking() {
   }
 }
 
+// 전체 학생 일괄 초기화 (칭호 포함 리셋)
 async function resetAllStudentData() {
-  const input = prompt("⚠️ 모든 학생의 진도, 포인트, 기록을 일괄 0으로 초기화합니다.\n(학생 명단/학번/이름은 유지됩니다)\n\n진행하려면 관리자 비밀번호 또는 '초기화'를 입력하세요:");
+  const input = prompt("⚠️ 모든 학생의 진도, 포인트, 기록, [보유 칭호]까지 일괄 초기화합니다.\n(학생 명단/학번/이름은 유지됩니다)\n\n진행하려면 관리자 비밀번호 또는 '초기화'를 입력하세요:");
   if (!input) return;
 
   const trimmedInput = input.trim();
@@ -426,6 +478,8 @@ async function resetAllStudentData() {
       updates[`students/${student.id}/progress`] = { vocab: false, grammar: false, culture: false };
       updates[`students/${student.id}/records`] = { all: null, hira: null, kata: null };
       updates[`students/${student.id}/points`] = 0;
+      updates[`students/${student.id}/title`] = "🐣 가나 병아리";
+      updates[`students/${student.id}/ownedTitles`] = ["t_chick"];
       updates[`students/${student.id}/updatedAt`] = Date.now();
     });
 
@@ -434,12 +488,14 @@ async function resetAllStudentData() {
         currentUser.progress = { vocab: false, grammar: false, culture: false };
         currentUser.records = { all: null, hira: null, kata: null };
         currentUser.points = 0;
+        currentUser.title = "🐣 가나 병아리";
+        currentUser.ownedTitles = ["t_chick"];
         localStorage.setItem('ganago_user', JSON.stringify(currentUser));
         applyUserUI();
         updateBadges();
       }
       renderTeacherTable();
-      alert("모든 학생의 진도, 기록, 포인트가 0으로 완벽히 초기화되었습니다! ✨\n(학생 명단은 안전하게 유지됩니다)");
+      alert("모든 학생의 진도, 기록, 포인트 및 [칭호]가 깔끔하게 초기화되었습니다! ✨\n(학생 명단은 안전하게 유지됩니다)");
     }).catch(err => {
       alert("초기화 실패 (Firebase 통신 권한 확인 필요): " + err.message);
     });
