@@ -30,7 +30,7 @@
     }
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
     
-    /* 산뜻한 파스텔 그라데이션 배경 & 부드러운 격자 도트 */
+    /* 산뜻한 파스텔 그라데이션 배경 */
     body { 
       background: linear-gradient(135deg, #EEF2FF 0%, #F5F3FF 50%, #FDF2F8 100%);
       background-size: cover;
@@ -73,7 +73,7 @@
     .input-group input { width: 100%; padding: 13px; border: 2px solid var(--border); border-radius: 12px; font-size: 15px; outline: none; transition: 0.2s; background: #F8FAFC; }
     .input-group input:focus { border-color: var(--primary); background: white; box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15); }
     
-    /* 듀오링고 스타일 3D 입체 푸시 버튼 */
+    /* 3D 입체 버튼 */
     .btn-3d { 
       width: 100%; 
       padding: 14px; 
@@ -102,7 +102,7 @@
     .btn-back { background: #64748B; border-bottom: 4px solid #475569; margin-top: 10px; }
     .btn-back:active { transform: translateY(2px); border-bottom-width: 2px; }
 
-    /* 과목별 개성 넘치는 테마 카드 */
+    /* 과목별 카드 */
     .category-card { 
       background: white; 
       border: 2px solid var(--border); 
@@ -613,4 +613,1282 @@
         renderRankingList();
       }
       if (document.getElementById('screen-teacher').classList.contains('active')) {
-        renderTeacherTable
+        renderTeacherTable();
+      }
+    } else {
+      studentList = [];
+    }
+  });
+
+  function syncWithDB() {
+    if (!currentUser.id) return;
+    db.ref('students/' + currentUser.id).set({
+      id: currentUser.id,
+      name: currentUser.name,
+      nick: currentUser.nick,
+      className: currentUser.className,
+      title: currentUser.title || "🐣 가나 병아리",
+      ownedTitles: currentUser.ownedTitles || ["t_chick"],
+      progress: currentUser.progress,
+      records: currentUser.records || { all: null, hira: null, kata: null },
+      points: currentUser.points || 0,
+      lastLoginDate: currentUser.lastLoginDate || "",
+      updatedAt: Date.now()
+    });
+    localStorage.setItem('ganago_user', JSON.stringify(currentUser));
+  }
+
+  function getTodayString() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
+  function checkDailyAttendance() {
+    const today = getTodayString();
+    if (currentUser.lastLoginDate !== today) {
+      currentUser.points = (currentUser.points || 0) + 10;
+      currentUser.lastLoginDate = today;
+      syncWithDB();
+      setTimeout(() => {
+        triggerCelebration();
+        alert(`🎉 오늘 첫 로그인! 일일 출석 보너스 +10P가 적립되었습니다.\n(현재 보유: ${currentUser.points}P)`);
+      }, 500);
+    }
+  }
+
+  function addRewardPoints(amount, reason) {
+    currentUser.points = (currentUser.points || 0) + amount;
+    syncWithDB();
+    updatePointUI();
+    triggerCelebration();
+    alert(`⭐ ${reason} 달성!\n+${amount}P가 적립되었습니다. (현재 보유: ${currentUser.points}P)`);
+  }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    const saved = localStorage.getItem('ganago_user');
+    if (saved) {
+      try {
+        currentUser = JSON.parse(saved);
+        if (!currentUser.records) currentUser.records = { all: null, hira: null, kata: null };
+        if (!currentUser.ownedTitles) currentUser.ownedTitles = ["t_chick"];
+        if (!currentUser.title) currentUser.title = "🐣 가나 병아리";
+        if (currentUser.id && currentUser.name) {
+          currentUser.className = parseClassName(currentUser.id);
+          applyUserUI();
+          checkDailyAttendance();
+          goToMain();
+        }
+      } catch (e) {
+        console.error("사용자 로드 에러", e);
+      }
+    }
+  });
+
+  function applyUserUI() {
+    document.getElementById('user-badge').innerText = `${currentUser.title} ${currentUser.nick}`;
+    document.getElementById('user-badge').style.display = 'inline-block';
+    updatePointUI();
+    document.getElementById('user-points').style.display = 'inline-block';
+    document.getElementById('btn-shop').style.display = 'inline-block';
+    document.getElementById('btn-logout').style.display = 'inline-block';
+    document.getElementById('main-class-tag').innerText = `소속: [${currentUser.className}] | 문제를 풀고 우리 반 순위를 올리세요!`;
+  }
+
+  function updatePointUI() {
+    document.getElementById('user-points').innerText = `💰 ${currentUser.points || 0}P`;
+  }
+
+  function handleLogin() {
+    const id = document.getElementById('input-student-id').value.trim();
+    const name = document.getElementById('input-student-name').value.trim();
+    let nick = document.getElementById('input-student-nick').value.trim();
+
+    if (!nick) {
+      nick = name; // 닉네임 미입력 시 실명 자동 사용
+    }
+
+    if (!id || !name) {
+      alert("학번과 실명을 입력해주세요!");
+      return;
+    }
+
+    currentUser.id = id;
+    currentUser.name = name;
+    currentUser.nick = nick;
+    currentUser.className = parseClassName(id);
+    if (!currentUser.records) currentUser.records = { all: null, hira: null, kata: null };
+    if (!currentUser.ownedTitles) currentUser.ownedTitles = ["t_chick"];
+    if (!currentUser.title) currentUser.title = "🐣 가나 병아리";
+
+    applyUserUI();
+    checkDailyAttendance();
+    syncWithDB();
+    goToMain();
+  }
+
+  function handleLogout() {
+    if (confirm("다른 계정으로 변경하시겠습니까?")) {
+      leaveMultiRoom();
+      localStorage.removeItem('ganago_user');
+      currentUser = {
+        id: "", name: "", nick: "", className: "기타 학급",
+        title: "🐣 가나 병아리", ownedTitles: ["t_chick"],
+        progress: { vocab: false, grammar: false, culture: false },
+        records: { all: null, hira: null, kata: null },
+        points: 0, lastLoginDate: ""
+      };
+      document.getElementById('user-badge').style.display = 'none';
+      document.getElementById('user-points').style.display = 'none';
+      document.getElementById('btn-shop').style.display = 'none';
+      document.getElementById('btn-logout').style.display = 'none';
+      document.getElementById('input-student-id').value = '';
+      document.getElementById('input-student-name').value = '';
+      document.getElementById('input-student-nick').value = '';
+      switchScreen('screen-login');
+    }
+  }
+
+  // ---------------- [칭호 상점] ----------------
+  function openShopModal() {
+    document.getElementById('shop-my-points').innerText = `${currentUser.points || 0}P`;
+    renderShopItems();
+    document.getElementById('shop-modal').style.display = 'flex';
+  }
+
+  function closeShopModal() {
+    document.getElementById('shop-modal').style.display = 'none';
+  }
+
+  function renderShopItems() {
+    const container = document.getElementById('shop-items-container');
+    container.innerHTML = '';
+
+    SHOP_TITLES.forEach(item => {
+      const isOwned = currentUser.ownedTitles && currentUser.ownedTitles.includes(item.id);
+      const isEquipped = currentUser.title === item.name;
+
+      const div = document.createElement('div');
+      div.className = `shop-item ${isEquipped ? 'equipped' : ''}`;
+
+      let btnHtml = '';
+      if (isEquipped) {
+        btnHtml = `<button class="shop-btn btn-using">장착 중</button>`;
+      } else if (isOwned) {
+        btnHtml = `<button class="shop-btn btn-equip" onclick="equipTitle('${item.name}')">장착</button>`;
+      } else {
+        btnHtml = `<button class="shop-btn btn-buy" onclick="buyTitle('${item.id}',${item.price}, '${item.name}')">${item.price}P 구매</button>`;
+      }
+
+      div.innerHTML = `
+        <div>
+          <div style="font-size:14px; font-weight:800; color:var(--text);">${item.name}</div>
+          <div style="font-size:11px; color:var(--text-muted);">${item.desc}</div>
+        </div>
+        <div>${btnHtml}</div>
+      `;
+      container.appendChild(div);
+    });
+  }
+
+  function buyTitle(titleId, price, titleName) {
+    if ((currentUser.points || 0) < price) {
+      alert("포인트가 부족합니다! 퀴즈와 스피드런을 클리어해 포인트를 모아보세요.");
+      return;
+    }
+    if (confirm(`[${titleName}] 칭호를 ${price}P에 구매하시겠습니까?`)) {
+      currentUser.points -= price;
+      if (!currentUser.ownedTitles) currentUser.ownedTitles = ["t_chick"];
+      currentUser.ownedTitles.push(titleId);
+      currentUser.title = titleName;
+      syncWithDB();
+      applyUserUI();
+      openShopModal();
+      triggerCelebration();
+      alert(`🎉 [${titleName}] 칭호를 구매하고 즉시 장착했습니다!`);
+    }
+  }
+
+  function equipTitle(titleName) {
+    currentUser.title = titleName;
+    syncWithDB();
+    applyUserUI();
+    openShopModal();
+  }
+
+  // ---------------- [보안: SHA-256 관리자 인증] ----------------
+  const SECURE_TEACHER_HASH = "026691d5d0ade18d6cfb0f22f502d5acc4b134db82569e64fff41fa27a04c4e7";
+
+  async function sha256(message) {
+    const msgBuffer = new TextEncoder().encode(message);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  let teacherTapCount = 0;
+  let teacherTapTimer = null;
+
+  function handleSecretTeacherTap() {
+    teacherTapCount++;
+    clearTimeout(teacherTapTimer);
+    teacherTapTimer = setTimeout(() => { teacherTapCount = 0; }, 3000);
+
+    if (teacherTapCount >= 5) {
+      teacherTapCount = 0;
+      openTeacherModal();
+    }
+  }
+
+  async function openTeacherModal() {
+    const pw = prompt("관리자 인증 번호를 입력하세요:");
+    if (!pw) return;
+
+    const inputHash = await sha256(pw);
+    if (inputHash !== SECURE_TEACHER_HASH) {
+      alert("접근 권한이 없습니다.");
+      return;
+    }
+    switchScreen('screen-teacher');
+    renderTeacherTable();
+  }
+
+  function renderTeacherTable() {
+    const tBody = document.getElementById('teacher-data-body');
+    tBody.innerHTML = '';
+
+    studentList.forEach(item => {
+      const rec = item.records || {};
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${item.className || parseClassName(item.id)}</td>
+        <td><strong>${item.name}</strong></td>
+        <td>${item.nick} <span style="font-size:10px; color:var(--primary);">(${item.title || '기본'})</span></td>
+        <td>${item.progress && item.progress.vocab ? '✅' : '❌'}</td>
+        <td>${item.progress && item.progress.grammar ? '✅' : '❌'}</td>
+        <td>${item.progress && item.progress.culture ? '✅' : '❌'}</td>
+        <td>${typeof rec.all === 'number' ? rec.all + 's' : '-'}</td>
+        <td><strong>${item.points || 0}P</strong></td>
+        <td><button class="btn-point-mod" onclick="adminGrantPoint('${item.id}', '${item.name}')">+조정</button></td>
+      `;
+      tBody.appendChild(tr);
+    });
+  }
+
+  function adminGrantPoint(studentId, studentName) {
+    const input = prompt(`[${studentName}] 학생에게 지급/차감할 포인트를 입력하세요 (예: 50 또는 -20):`, "50");
+    const delta = parseInt(input, 10);
+    if (!isNaN(delta)) {
+      db.ref(`students/${studentId}/points`).transaction((current) => (current || 0) + delta);
+      alert(`[${studentName}] 학생에게 ${delta}P를 반영했습니다.`);
+    }
+  }
+
+  function resetSpeedrunRanking() {
+    if (confirm("⚠️ 모든 학생의 스피드런 기록을 전부 초기화하시겠습니까?\n\n(학생 계정, 포인트, 진도는 유지되며 스피드런 기록만 삭제됩니다)")) {
+      studentList.forEach(item => {
+        db.ref(`students/${item.id}/records`).set({ all: null, hira: null, kata: null });
+        db.ref(`students/${item.id}/time`).remove();
+      });
+      if (currentUser.id) currentUser.records = { all: null, hira: null, kata: null };
+      localStorage.setItem('ganago_user', JSON.stringify(currentUser));
+      alert("전체 스피드런 랭킹 기록이 초기화되었습니다! 🔥");
+      renderTeacherTable();
+    }
+  }
+
+  function speakJapanese(text) {
+    if (!('speechSynthesis' in window)) return;
+    try {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'ja-JP';
+      utterance.rate = 0.9;
+      window.speechSynthesis.speak(utterance);
+    } catch (e) {
+      console.warn("TTS 미지원 또는 제한", e);
+    }
+  }
+
+  function shuffleArray(arr) {
+    const result = [...arr];
+    for (let i = result.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [result[i], result[j]] = [result[j], result[i]];
+    }
+    return result;
+  }
+
+  // ---------------- [오답 노트] ----------------
+  function saveWrongRecord(category, question, myAnswer, correctAnswer) {
+    const note = {
+      date: new Date().toLocaleDateString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }),
+      category: category,
+      question: question,
+      myAnswer: myAnswer,
+      correctAnswer: correctAnswer
+    };
+    let records = [];
+    try {
+      records = JSON.parse(localStorage.getItem('ganago_wrong_notes') || '[]');
+    } catch (e) { records = []; }
+    records.unshift(note);
+    if (records.length > 50) records.pop();
+    localStorage.setItem('ganago_wrong_notes', JSON.stringify(records));
+  }
+
+  function openWrongNoteScreen() {
+    switchScreen('screen-wrong-note');
+    renderWrongNotes();
+  }
+
+  function renderWrongNotes() {
+    const list = document.getElementById('wrong-note-list');
+    list.innerHTML = '';
+    let records = [];
+    try {
+      records = JSON.parse(localStorage.getItem('ganago_wrong_notes') || '[]');
+    } catch (e) { records = []; }
+
+    if (records.length === 0) {
+      list.innerHTML = '<div style="text-align:center; padding:40px; color:#94A3B8; font-size:13px;">아직 기록된 오답이 없습니다.<br>완벽하게 정답을 맞혀보세요! ✨</div>';
+      return;
+    }
+
+    records.forEach(r => {
+      const div = document.createElement('div');
+      div.className = 'wrong-item';
+      div.innerHTML = `
+        <div class="wrong-item-top">
+          <span>[${r.category}]</span>
+          <span>${r.date}</span>
+        </div>
+        <div style="font-size:16px; font-weight:800; margin-bottom:6px; color:var(--text);">${r.question}</div>
+        <div style="display:flex; justify-content:space-between; font-size:13px;">
+          <span style="color:var(--danger);">내가 고른 답: <strong>${r.myAnswer}</strong></span>
+          <span style="color:var(--success);">정답: <strong>${r.correctAnswer}</strong></span>
+        </div>
+      `;
+      list.appendChild(div);
+    });
+  }
+
+  function clearWrongNotes() {
+    if (confirm("오답 노트를 모두 비우시겠습니까?")) {
+      localStorage.removeItem('ganago_wrong_notes');
+      renderWrongNotes();
+    }
+  }
+
+  // ---------------- [데이터: 교과서 1~4단원 데이터] ----------------
+  const VOCAB_BY_UNIT = {
+    1: [
+      { word: "あさ", meaning: "아침 (1단원)", audio: "あさ" },
+      { word: "つくえ", meaning: "책상 (1단원)", audio: "つくえ" },
+      { word: "さくら", meaning: "벚꽃 (1단원)", audio: "さくら" },
+      { word: "ほんや", meaning: "서점 (1단원)", audio: "ほんや" },
+      { word: "いえ", meaning: "집 (1단원)", audio: "いえ" },
+      { word: "すし", meaning: "초밥 (1단원)", audio: "すし" },
+      { word: "ねこ", meaning: "고양이 (1단원)", audio: "ねこ" },
+      { word: "いぬ", meaning: "개 (1단원)", audio: "いぬ" },
+      { word: "はな", meaning: "꽃 / 코 (1단원)", audio: "はな" },
+      { word: "やま", meaning: "산 (1단원)", audio: "やま" },
+      { word: "かわ", meaning: "강 (1단원)", audio: "かわ" },
+      { word: "そら", meaning: "하늘 (1단원)", audio: "そら" }
+    ],
+    2: [
+      { word: "ちち", meaning: "아버지 (2단원)", audio: "ちち" },
+      { word: "はは", meaning: "어머니 (2단원)", audio: "はは" },
+      { word: "あに", meaning: "형 / 오빠 (2단원)", audio: "あに" },
+      { word: "あね", meaning: "누나 / 언니 (2단원)", audio: "あね" },
+      { word: "いもうと", meaning: "여동생 (2단원)", audio: "いもうと" },
+      { word: "おとうと", meaning: "남동생 (2단원)", audio: "おとうと" },
+      { word: "えいが", meaning: "영화 (2단원)", audio: "えいが" },
+      { word: "りょこう", meaning: "여행 (2단원)", audio: "りょこう" },
+      { word: "おんがく", meaning: "음악 (2단원)", audio: "おんがく" },
+      { word: "へや", meaning: "방 (2단원)", audio: "へや" },
+      { word: "しゃしん", meaning: "사진 (2단원)", audio: "しゃしん" }
+    ],
+    3: [
+      { word: "うどん", meaning: "우동 (3단원)", audio: "うどん" },
+      { word: "カレー", meaning: "카레 (3단원)", audio: "カレー" },
+      { word: "ラーメン", meaning: "라면 (3단원)", audio: "ラーメン" },
+      { word: "そば", meaning: "메밀국수 (3단원)", audio: "そば" },
+      { word: "みず", meaning: "물 (3단원)", audio: "みず" },
+      { word: "おちゃ", meaning: "녹차 (3단원)", audio: "おちゃ" },
+      { word: "あつい", meaning: "뜨겁다 / 덥다 (3단원)", audio: "あつい" },
+      { word: "つめたい", meaning: "차갑다 (3단원)", audio: "つめたい" },
+      { word: "おいしい", meaning: "맛있다 (3단원)", audio: "おいしい" },
+      { word: "あまい", meaning: "달다 (3단원)", audio: "あまい" },
+      { word: "からい", meaning: "맵다 (3단원)", audio: "からい" }
+    ],
+    4: [
+      { word: "みかん", meaning: "귤 (4단원)", audio: "みかん" },
+      { word: "いちご", meaning: "딸기 (4단원)", audio: "いちご" },
+      { word: "りんご", meaning: "사과 (4단원)", audio: "りんご" },
+      { word: "ノート", meaning: "공책 (4단원)", audio: "ノート" },
+      { word: "ペン", meaning: "펜 (4단원)", audio: "ペン" },
+      { word: "コップ", meaning: "컵 (4단원)", audio: "コップ" },
+      { word: "きれいだ", meaning: "예쁘다 / 깨끗하다 (4단원)", audio: "きれいだ" },
+      { word: "しずかだ", meaning: "조용하다 (4단원)", audio: "しずかだ" },
+      { word: "にぎやかだ", meaning: "번화하다 (4단원)", audio: "にぎやかだ" },
+      { word: "たかい", meaning: "비싸다 / 높다 (4단원)", audio: "たかい" },
+      { word: "やすい", meaning: "싸다 (4단원)", audio: "やすい" }
+    ]
+  };
+
+  const GRAMMAR_BY_UNIT = {
+    1: [
+      { meaning: "아침 인사 (정중형): 안녕하세요", tokens: ["おはよう", "ございます"], dummy: ["こんにちは", "こんばんは"], audio: "おはようございます" },
+      { meaning: "낮 인사: 안녕하세요", tokens: ["こんにちは"], dummy: ["おはよう", "こんばんは", "また"], audio: "こんにちは" },
+      { meaning: "저녁 인사: 안녕하세요", tokens: ["こんばんは"], dummy: ["おはよう", "こんにちは", "じゃあ"], audio: "こんばんは" },
+      { meaning: "헤어질 때 인사: 내일 또 봐", tokens: ["また", "あした"], dummy: ["きのう", "じゃあ", "どうぞ"], audio: "またあした" },
+      { meaning: "정중한 감사 인사: 대단히 감사합니다", tokens: ["どうも", "ありがとう", "ございます"], dummy: ["すみません", "いいえ"], audio: "どうもありがとうございます" },
+      { meaning: "사과/부를 때 인사: 죄송합니다 / 실례합니다", tokens: ["すみません"], dummy: ["ごめん", "いいえ", "どうぞ"], audio: "すみません" },
+      { meaning: "처음 만났을 때 인사: 처음 뵙겠습니다", tokens: ["はじめ", "まして"], dummy: ["よろしく", "どうぞ"], audio: "はじめまして" },
+      { meaning: "소개 마무리 인사: 잘 부탁드립니다", tokens: ["どうぞ", "よろしく", "おねがい", "します"], dummy: ["ありがとう", "いいえ"], audio: "どうぞよろしくおねがいします" },
+      { meaning: "친한 친구와 작별: 그럼, 또 봐", tokens: ["じゃあ", "また"], dummy: ["おはよう", "きのう"], audio: "じゃあまた" },
+      { meaning: "상대방을 배려할 때: 어서오세요 / 부디", tokens: ["どうぞ"], dummy: ["どうも", "いいえ", "はい"], audio: "どうぞ" }
+    ],
+    2: [
+      { meaning: "출신 소개: 한국에서 왔습니다", tokens: ["かんこく", "から", "きました"], dummy: ["まで", "にほん"], audio: "かんこくからきました" },
+      { meaning: "남의 집 방문 인사: 실례하겠습니다", tokens: ["おじゃま", "します"], dummy: ["どうぞ", "いらっしゃい"], audio: "おじゃまします" },
+      { meaning: "가족 소개: 아버지와 어머니입니다", tokens: ["ちち", "と", "はは", "です"], dummy: ["の", "に"], audio: "ちちとははです" },
+      { meaning: "소유 표현: 이것은 저의 책입니다", tokens: ["これ", "は", "わたし", "の", "ほん", "です"], dummy: ["それ", "が"], audio: "これはわたしのほんです" },
+      { meaning: "위치 묻기: 화장실은 어디입니까?", tokens: ["トイレ", "は", "どこ", "ですか"], dummy: ["だれ", "いくら"], audio: "トイレはどこですか" },
+      { meaning: "사물 지칭: 그것은 사전입니다", tokens: ["それ", "は", "じしょ", "です"], dummy: ["あれ", "の"], audio: "それはじしょです" },
+      { meaning: "먼 사물 지칭: 저것은 도서관입니다", tokens: ["あれ", "は", "としょかん", "です"], dummy: ["これ", "に"], audio: "あれはとしょかんです" },
+      { meaning: "인물 묻기: 저 사람은 누구입니까?", tokens: ["あのひと", "は", "だれ", "ですか"], dummy: ["どこ", "なに"], audio: "あのひとはだれですか" },
+      { meaning: "학년 소개: 고등학교 2학년입니다", tokens: ["こうこう", "2ねんせい", "です"], dummy: ["から", "まで"], audio: "こうこうにねんせいです" },
+      { meaning: "거주 표현: 서울에 살고 있습니다", tokens: ["ソウル", "に", "すんで", "います"], dummy: ["で", "から"], audio: "ソウルにすんでいます" }
+    ],
+    3: [
+      { meaning: "식당 주문: 우동으로 하겠습니다", tokens: ["うどん", "に", "します"], dummy: ["を", "が", "で"], audio: "うどんにします" },
+      { meaning: "식사 전 예절 인사: 잘 먹겠습니다", tokens: ["いただきます"], dummy: ["ごちそうさま", "いらっしゃい"], audio: "いただきます" },
+      { meaning: "식사 후 예절 인사: 잘 먹었습니다", tokens: ["ごちそう", "さま", "でした"], dummy: ["ありがとう", "おいしい"], audio: "ごちそうさまでした" },
+      { meaning: "시간 표현: 수업은 9시부터입니다", tokens: ["じゅぎょう", "は", "9じ", "から", "です"], dummy: ["まで", "と"], audio: "じゅぎょうはくじからです" },
+      { meaning: "비교 표현: 메밀국수가 더 맛있습니다", tokens: ["そば", "の", "ほう", "が", "おいしい", "です"], dummy: ["より", "も"], audio: "そば의ほうがおいしいです" },
+      { meaning: "메뉴 추천 묻기: 추천 메뉴는 무엇입니까?", tokens: ["おすすめ", "は", "なん", "ですか"], dummy: ["どこ", "だれ"], audio: "おすすめはなんですか" },
+      { meaning: "수량 주문: 라면 하나 주세요", tokens: ["ラーメン", "ひとつ", "ください"], dummy: ["ふたつ", "を"], audio: "ラーメンひとつください" },
+      { meaning: "물 요청: 물 부탁드립니다", tokens: ["おみず", "おねがい", "します"], dummy: ["どうぞ", "から"], audio: "おみずおねがいします" },
+      { meaning: "음식 맛 평가: 조금 맵습니다", tokens: ["すこし", "からい", "です"], dummy: ["あまい", "とても"], audio: "すこしからいです" },
+      { meaning: "식사 권유: 함께 먹지 않겠습니까?", tokens: ["いっしょに", "たべませんか"], dummy: ["たべます", "いきます"], audio: "いっしょにたべませんか" }
+    ],
+    4: [
+      { meaning: "취향 표현: 여행을 좋아합니다", tokens: ["りょこう", "が", "すき", "です"], dummy: ["を", "は", "に"], audio: "りょこうがすきです" },
+      { meaning: "가격 묻기: 이 컵은 얼마입니까?", tokens: ["この", "コップ", "は", "いくら", "ですか"], dummy: ["いくつ", "どこ"], audio: "このコップはいくらですか" },
+      { meaning: "물건 주문: 이것 두 개 주세요", tokens: ["これ", "ふたつ", "ください"], dummy: ["ひとつ", "みっつ"], audio: "これふたつください" },
+      { meaning: "선택/추천 묻기: 어느 것이 맛있습니까?", tokens: ["どれ", "が", "おいしい", "ですか"], dummy: ["どの", "なに"], audio: "どれがおいしいですか" },
+      { meaning: "감탄/칭찬: 정말 예쁩니다", tokens: ["ほんとうに", "きれい", "です"], dummy: ["あまり", "すこし"], audio: "ほんとうにきれいです" },
+      { meaning: "원하는 것 표현: 새 공책을 갖고 싶습니다", tokens: ["あたらしい", "ノート", "が", "ほしい", "です"], dummy: ["すき", "を"], audio: "あたらしいノートがほしいです" },
+      { meaning: "수량 표현: 사과를 세 개 샀습니다", tokens: ["りんご", "を", "みっつ", "かいました"], dummy: ["ふたつ", "が"], audio: "りんごをみっつかいました" },
+      { meaning: "권유 응답: 네, 그렇게 합시다", tokens: ["はい", "そう", "しましょう"], dummy: ["いいえ", "どうぞ"], audio: "はいそうしましょう" },
+      { meaning: "상태 설명: 이 방은 조용합니다", tokens: ["この", "へや", "は", "しずか", "です"], dummy: ["きれい", "に"], audio: "このへやはしずかです" },
+      { meaning: "가격 평가: 매우 쌉니다", tokens: ["とても", "やすい", "です"], dummy: ["たかい", "あまり"], audio: "とてもやすいです" }
+    ]
+  };
+
+  const CULTURE_BY_UNIT = {
+    1: [
+      { q: "일본 고등학교는 1년을 2학기제로 운영하는 곳이 대부분이다.", ans: "X", tip: "일본은 4월에 개학하며 3학기제로 운영됩니다." },
+      { q: "일본의 모든 고등학생은 의무적으로 학교 급식을 먹는다.", ans: "X", tip: "도시락을 싸 오거나 매점, 식당을 이용합니다." },
+      { q: "동아리 활동을 하지 않고 곧장 하교하는 학생을 '귀가부'라고 부른다.", ans: "O", tip: "이를 귀가부(きたくぶ)라고 부릅니다." },
+      { q: "일본에서는 자신을 가리킬 때 검지손가락으로 코를 가리킨다.", ans: "O", tip: "가슴이 아닌 코를 가리킵니다." },
+      { q: "일본에서는 부탁을 하거나 사과할 때 두 손을 모으는 제스처를 취하기도 한다.", ans: "O", tip: "합장하듯 두 손을 모으는 동작을 씁니다." },
+      { q: "일본의 신학기는 한국과 마찬가지로 매년 3월에 시작된다.", ans: "X", tip: "일본은 벚꽃이 피는 4월에 1학기가 시작됩니다." },
+      { q: "일본 학교의 동아리 활동(부활동)은 방과 후뿐만 아니라 주말에도 적극적으로 진행된다.", ans: "O", tip: "부카츠(部活)는 일본 학교 생활의 매우 큰 비중을 차지합니다." },
+      { q: "일본의 고등학교는 대부분 야간 자율학습(야자)이 필수이다.", ans: "X", tip: "일본 학교에는 한국과 같은 강제 야간 자율학습 문화가 없습니다." },
+      { q: "일본 문화에서는 상대방과 대화할 때 맞장구(아이즈치)를 자주 치는 것이 예의이다.", ans: "O", tip: "상대의 말을 잘 듣고 있다는 뜻으로 맞장구를 중요하게 여깁니다." },
+      { q: "일본에서는 명함을 교환할 때 한 손으로 가볍게 주고받는 것이 정중하다.", ans: "X", tip: "반드시 두 손으로 공손하게 주고받아야 합니다." }
+    ],
+    2: [
+      { q: "일본의 2층 목조/경량 철골 다세대 주택을 '아파트'라고 부른다.", ans: "O", tip: "한국의 고층 아파트는 일본에서 '맨션'입니다." },
+      { q: "주택 평면도 구조 표기에서 'K'는 거실(Living)을 의미한다.", ans: "X", tip: "부엌(Kitchen)을 뜻하며 거실은 'L'입니다." },
+      { q: "일본 주택은 화장실(변기)과 욕실이 분리된 구조가 많다.", ans: "O", tip: "건식 변기 화장실과 습식 욕실이 분리되어 있습니다." },
+      { q: "남의 집을 방문할 때 입고 온 외투는 현관 벨을 누르기 전에 벗는다.", ans: "O", tip: "바깥 먼지를 털고 벨을 누르기 전에 벗습니다." },
+      { q: "다다미방에 들어갈 때는 반드시 맨발로 들어가는 것이 예의이다.", ans: "X", tip: "다다미 보호와 예절을 위해 양말을 신는 것이 좋습니다." },
+      { q: "일본의 욕조 목욕 문화에서는 가족들이 몸을 씻고 욕조에 들어가 같은 물을 공유한다.", ans: "O", tip: "욕조 밖에서 몸을 비누칠해 완전히 씻은 뒤 온수에 몸을 담급니다." },
+      { q: "일본의 난방 기구인 '코타츠'는 탁자 아래에 열선이 있고 이불을 덮어 사용한다.", ans: "O", tip: "일본의 전통적인 대표 겨울 난방 기구입니다." },
+      { q: "현관에서 신발을 벗을 때는 신발 앞코가 문 바깥쪽(나가는 방향)을 향하도록 정리한다.", ans: "O", tip: "나갈 때 신기 편하게 바깥쪽으로 돌려놓는 것이 예의입니다." },
+      { q: "일본 주택의 창문에 주로 쓰이는 종이 미닫이문을 '쇼지(障子)'라고 한다.", ans: "O", tip: "전통 주택의 한지 느낌 미닫이문을 쇼지라고 부릅니다." },
+      { q: "남의 집에 방문할 때는 약속 시간보다 30분 일찍 도착하는 것이 미덕이다.", ans: "X", tip: "집주인의 준비를 방해할 수 있어 정시 또는 2~3분 늦게 도착하는 것이 예의입니다." }
+    ],
+    3: [
+      { q: "가라아게(からあげ)는 닭고기 등에 전분을 묻혀 튀겨낸 요리이다.", ans: "O", tip: "교과서 대표 요리입니다." },
+      { q: "일본 라면은 국물 양념에 따라 쇼유, 시오, 미소, 돈코쓰 등으로 나뉜다.", ans: "O", tip: "간장, 소금, 된장, 돼지뼈 육수 등으로 구분됩니다." },
+      { q: "일본에서는 시합이나 시험 전에 '돈가스(とんカツ)'를 먹는 문화가 있다.", ans: "O", tip: "카츠(かつ)가 '이기다(勝つ)'와 발음이 같기 때문입니다." },
+      { q: "젓가락으로 집은 음식을 상대방의 젓가락으로 바로 건네주는 것은 좋은 매너이다.", ans: "X", tip: "유골 수습을 연상시켜 엄격한 금기 사항입니다." },
+      { q: "일본에서 라면이나 메밀국수를 먹을 때 소리를 내며 먹는 것은 실례가 아니다.", ans: "O", tip: "면 요리는 후루룩 소리를 내며 먹는 문화가 있습니다." },
+      { q: "일본에서는 밥그릇이나 국그릇을 식탁에 두고 먹기보다 손에 들고 먹는다.", ans: "O", tip: "고개를 숙이고 먹는 것(이누구이)을 피하고 그릇을 손에 듭니다." },
+      { q: "일본에서 식사 전 예절 인사는 '고치소사마데시타'이다.", ans: "X", tip: "식사 전은 '이타다키마스', 식사 후가 '고치소사마데시타'입니다." },
+      { q: "일본 젓가락은 한국 젓가락에 비해 끝이 뾰족하고 주로 나무로 만든다.", ans: "O", tip: "생선 가시를 바르기 편하도록 끝이 뾰족한 목젓가락을 많이 씁니다." },
+      { q: "일본에서 숟가락은 국물을 마실 때 항상 필수적으로 식탁에 차려진다.", ans: "X", tip: "국물은 그릇째 들고 마시므로 숟가락이 차려지지 않는 경우가 흔합니다." },
+      { q: "일본식 계란말이(타마고야키)는 소금으로만 간을 하여 달지 않고 짜다.", ans: "X", tip: "설탕과 맛술(미림), 다시마 육수를 넣어 달착지근한 맛이 특징입니다." }
+    ],
+    4: [
+      { q: "일본 홋카이도 삿포로는 겨울 눈 축제(ゆきまつり)가 대표 명소이다.", ans: "O", tip: "삿포로의 겨울 눈 축제가 세계적으로 유명합니다." },
+      { q: "오사카의 유명 음식 거리인 '도톤보리'는 도쿄에 위치해 있다.", ans: "X", tip: "도톤보리는 오사카의 대표 명소입니다." },
+      { q: "일본의 일반 택시 뒷문은 승객이 손으로 직접 열고 닫아야 한다.", ans: "X", tip: "운전기사가 레버로 여닫는 자동문입니다." },
+      { q: "철도역이나 기차 안에서 판매하는 각 지역 특산물 도시락을 '에키벤'이라고 한다.", ans: "O", tip: "역(えき) + 도시락(べんとう)의 합성어입니다." },
+      { q: "일본의 자동차 운전석은 차량의 왼쪽에 위치해 있다.", ans: "X", tip: "일본은 차량 좌측통행 국가로 운전석이 오른쪽에 있습니다." },
+      { q: "교토는 과거 일본의 오랜 수도였으며 절과 신사 등 전통 건축물이 많다.", ans: "O", tip: "천년의 고도로 유네스코 문화유산이 집중되어 있습니다." },
+      { q: "일본의 고속철도를 '신칸센(新幹線)'이라고 부른다.", ans: "O", tip: "시속 280~320km로 달리는 대표 고속철도입니다." },
+      { q: "일본에서는 물건을 사거나 식당을 이용할 때 소비세(10%)가 별도로 붙거나 표시된다.", ans: "O", tip: "세금 포함(税込)과 세금 별도(税抜) 표기가 병기됩니다." },
+      { q: "일본 전철 안에서는 전화 통화를 큰 소리로 자유롭게 하는 것이 일반적이다.", ans: "X", tip: "매너 모드를 켜고 통화를 하지 않는 것이 엄격한 에티켓입니다." },
+      { q: "일본의 여름 축제에서 입는 간편한 면 소재의 전통 옷을 '유카타'라고 한다.", ans: "O", tip: "여름 축제(마츠리)나 온천에서 즐겨 입는 전통 복장입니다." }
+    ]
+  };
+
+  const SPEEDRUN_HIRA = [
+    { kana: "ぬ", ans: "누", options: ["누", "메", "네", "와", "아"] },
+    { kana: "め", ans: "메", options: ["메", "누", "아", "유", "네"] },
+    { kana: "き", ans: "키", options: ["키", "사", "치", "하", "호"] },
+    { kana: "さ", ans: "사", options: ["사", "키", "치", "라", "세"] },
+    { kana: "わ", ans: "와", options: ["와", "레", "네", "아", "오"] },
+    { kana: "れ", ans: "레", options: ["레", "와", "네", "루", "로"] },
+    { kana: "ね", ans: "네", options: ["네", "와", "레", "누", "메"] },
+    { kana: "る", ans: "루", options: ["루", "로", "우", "마", "라"] },
+    { kana: "ろ", ans: "로", options: ["로", "루", "소", "모", "코"] },
+    { kana: "あ", ans: "아", options: ["아", "오", "메", "와", "무"] },
+    { kana: "お", ans: "오", options: ["오", "아", "무", "스", "호"] },
+    { kana: "は", ans: "하", options: ["하", "호", "마", "케", "나"] },
+    { kana: "ほ", ans: "호", options: ["호", "하", "키", "마", "네"] },
+    { kana: "い", ans: "이", options: ["이", "리", "코", "시", "니"] },
+    { kana: "り", ans: "리", options: ["리", "이", "소", "치", "시"] }
+  ];
+
+  const SPEEDRUN_KATA = [
+    { kana: "シ", ans: "시", options: ["시", "츠", "소", "응", "치"] },
+    { kana: "ツ", ans: "츠", options: ["츠", "시", "소", "토", "치"] },
+    { kana: "ソ", ans: "소", options: ["소", "응", "리", "치", "노"] },
+    { kana: "ン", ans: "응", options: ["응", "소", "노", "시", "츠"] },
+    { kana: "ノ", ans: "노", options: ["노", "메", "소", "이", "쿠"] },
+    { kana: "メ", ans: "메", options: ["메", "누", "나", "노", "치"] },
+    { kana: "ク", ans: "쿠", options: ["쿠", "와", "타", "케", "후"] },
+    { kana: "ワ", ans: "와", options: ["와", "쿠", "우", "후", "라"] },
+    { kana: "ウ", ans: "우", options: ["우", "와", "라", "후", "쿠"] },
+    { kana: "コ", ans: "코", options: ["코", "유", "에", "고", "로"] },
+    { kana: "ユ", ans: "유", options: ["유", "코", "요", "에", "마"] },
+    { kana: "サ", ans: "사", options: ["사", "세", "치", "키", "스"] },
+    { kana: "セ", ans: "세", options: ["세", "사", "야", "히", "테"] },
+    { kana: "タ", ans: "타", options: ["타", "쿠", "다", "케", "치"] },
+    { kana: "チ", ans: "치", options: ["치", "사", "테", "나", "시"] },
+    { kana: "テ", ans: "테", options: ["테", "치", "라", "데", "토"] },
+    { kana: "ト", ans: "토", options: ["토", "이", "보", "하", "테"] },
+    { kana: "ヌ", ans: "누", options: ["누", "메", "스", "후", "와"] },
+    { kana: "ネ", ans: "네", options: ["네", "와", "호", "누", "메"] },
+    { kana: "ハ", ans: "하", options: ["하", "호", "바", "파", "와"] },
+    { kana: "ホ", ans: "호", options: ["호", "하", "키", "마", "네"] },
+    { kana: "マ", ans: "마", options: ["마", "무", "아", "호", "유"] },
+    { kana: "ミ", ans: "미", options: ["미", "니", "시", "사", "치"] },
+    { kana: "ム", ans: "무", options: ["무", "마", "스", "라", "누"] },
+    { kana: "ラ", ans: "라", options: ["라", "우", "후", "루", "와"] },
+    { kana: "ル", ans: "루", options: ["루", "레", "라", "로", "노"] },
+    { kana: "レ", ans: "레", options: ["레", "루", "와", "네", "소"] },
+    { kana: "ロ", ans: "로", options: ["로", "코", "루", "고", "유"] }
+  ];
+
+  let currentMode = "";
+  let speedrunCategory = "all";
+  let currentUnit = 1;
+  let currentList = [];
+  let currentIdx = 0;
+  let currentAudioText = "";
+  let assembledTokens = [];
+  let timerInterval = null;
+  let startTime = 0;
+  let isAnswerLock = false;
+  let selectedOxChoice = null;
+
+  // ---------------- [멀티 배틀 룸 상태] ----------------
+  let currentRoomId = null;
+  let isRoomHost = false;
+  let multiRoomRef = null;
+
+  function switchScreen(screenId) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(screenId).classList.add('active');
+  }
+
+  function goToMain() {
+    if (timerInterval) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+    }
+    isAnswerLock = false;
+    selectedOxChoice = null;
+    updateBadges();
+    updatePointUI();
+    switchScreen('screen-main');
+  }
+
+  function handleGameBack() {
+    if (currentMode === 'multi') {
+      if (confirm("대결 중 나가시겠습니까?")) {
+        leaveMultiRoom();
+        goToMain();
+      }
+    } else {
+      goToMain();
+    }
+  }
+
+  function updateBadges() {
+    ['vocab', 'grammar', 'culture'].forEach(key => {
+      const el = document.getElementById(`badge-${key}`);
+      if (currentUser.progress[key]) {
+        el.innerText = "완료 ✔";
+        el.classList.add('done');
+      } else {
+        el.innerText = "미완료";
+        el.classList.remove('done');
+      }
+    });
+  }
+
+  function playCurrentAudio() {
+    if (currentAudioText) speakJapanese(currentAudioText);
+  }
+
+  /* ---------------- [교과서 단원 모드] ---------------- */
+  function openUnitSelectMode(mode) {
+    if (timerInterval) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+    }
+    currentMode = mode;
+    selectedOxChoice = null;
+    document.getElementById('multi-race-box').style.display = 'none';
+    document.getElementById('unit-tabs').style.display = 'grid';
+    document.getElementById('review-bubble').style.display = 'none';
+    
+    if (mode === 'culture') {
+      document.getElementById('builder-container').style.display = 'none';
+      document.getElementById('options-box-5').style.display = 'none';
+      document.getElementById('ox-container').style.display = 'block';
+    } else {
+      document.getElementById('builder-container').style.display = 'block';
+      document.getElementById('options-box-5').style.display = 'none';
+      document.getElementById('ox-container').style.display = 'none';
+    }
+
+    switchUnitTab(1);
+    switchScreen('screen-game');
+  }
+
+  function switchUnitTab(unitNum) {
+    currentUnit = unitNum;
+    document.querySelectorAll('.unit-btn').forEach((btn, idx) => {
+      btn.classList.toggle('active', idx + 1 === unitNum);
+    });
+
+    if (currentMode === 'vocab') {
+      document.getElementById('quiz-title').innerText = `🅰️ [${unitNum}단원] 어휘 퍼즐 (10문항)`;
+      currentList = shuffleArray(VOCAB_BY_UNIT[unitNum]).slice(0, 10);
+      currentIdx = 0;
+      renderVocabQuestion();
+    } else if (currentMode === 'grammar') {
+      document.getElementById('quiz-title').innerText = `💬 [${unitNum}단원] 문장 배열 (10문항)`;
+      currentList = shuffleArray(GRAMMAR_BY_UNIT[unitNum]).slice(0, 10);
+      currentIdx = 0;
+      renderGrammarQuestion();
+    } else if (currentMode === 'culture') {
+      document.getElementById('quiz-title').innerText = `🏮 [${unitNum}단원] 문화 유퀴즈 (10문항)`;
+      currentList = shuffleArray(CULTURE_BY_UNIT[unitNum]).slice(0, 10);
+      currentIdx = 0;
+      renderCultureQuestion();
+    }
+  }
+
+  function renderVocabQuestion() {
+    const q = currentList[currentIdx];
+    currentAudioText = q.audio;
+    assembledTokens = [];
+
+    document.getElementById('quiz-progress').innerText = `${currentIdx + 1} / ${currentList.length}`;
+    document.getElementById('quiz-main-content').className = "sentence-main";
+    document.getElementById('quiz-main-content').innerText = q.meaning;
+    document.getElementById('quiz-sub-content').innerText = "글자 카드를 터치해 조합창에 올린 후 [정답 확인 및 제출]을 누르세요";
+
+    renderAssembledBox();
+
+    const baseKanaPool = ["あ", "い", "う", "え", "お", "か", "き", "く", "す", "た", "ん", "て", "ま", "り", "と", "ら", "み"];
+    const wordChars = q.word.split('');
+    const pureExtra = baseKanaPool.filter(c => !wordChars.includes(c));
+    const extraChars = shuffleArray(pureExtra).slice(0, 2);
+
+    const pool = shuffleArray([...wordChars, ...extraChars]);
+    
+    const poolBox = document.getElementById('pool-box');
+    poolBox.innerHTML = '';
+    pool.forEach(char => {
+      const b = document.createElement('div');
+      b.className = 'pool-token';
+      b.innerText = char;
+      b.onclick = () => {
+        assembledTokens.push(char);
+        speakJapanese(char);
+        renderAssembledBox();
+      };
+      poolBox.appendChild(b);
+    });
+  }
+
+  function renderGrammarQuestion() {
+    const q = currentList[currentIdx];
+    currentAudioText = q.audio;
+    assembledTokens = [];
+
+    document.getElementById('quiz-progress').innerText = `${currentIdx + 1} / ${currentList.length}`;
+    document.getElementById('quiz-main-content').className = "sentence-main";
+    document.getElementById('quiz-main-content').innerText = q.meaning;
+    document.getElementById('quiz-sub-content').innerText = "단어 카드를 알맞은 순서대로 배열한 후 [정답 확인 및 제출]을 누르세요";
+
+    renderAssembledBox();
+
+    const pool = shuffleArray([...q.tokens, ...q.dummy]);
+    const poolBox = document.getElementById('pool-box');
+    poolBox.innerHTML = '';
+    
+    pool.forEach(token => {
+      const b = document.createElement('div');
+      b.className = 'pool-token';
+      b.innerText = token;
+      b.onclick = () => {
+        assembledTokens.push(token);
+        speakJapanese(token);
+        renderAssembledBox();
+      };
+      poolBox.appendChild(b);
+    });
+  }
+
+  function renderAssembledBox() {
+    const box = document.getElementById('assembled-box');
+    box.innerHTML = '';
+    assembledTokens.forEach((token, idx) => {
+      const b = document.createElement('div');
+      b.className = 'token-block';
+      b.innerText = token;
+      b.title = "누르면 취소됩니다";
+      b.onclick = () => {
+        assembledTokens.splice(idx, 1);
+        renderAssembledBox();
+      };
+      box.appendChild(b);
+    });
+  }
+
+  function submitBuilderAnswer() {
+    const q = currentList[currentIdx];
+    if (assembledTokens.length === 0) {
+      alert("단어/문장 카드를 먼저 조합창에 배치해주세요!");
+      return;
+    }
+
+    if (currentMode === 'vocab') {
+      const myWord = assembledTokens.join('');
+      if (myWord === q.word) {
+        playCurrentAudio();
+        triggerCelebration();
+        alert(`정답입니다! 👏 [ ${q.word} ]`);
+        currentIdx++;
+        if (currentIdx < currentList.length) {
+          renderVocabQuestion();
+        } else {
+          currentUser.progress.vocab = true;
+          addRewardPoints(15, `${currentUnit}단원 어휘 퍼즐 (10문항) 완성`);
+          goToMain();
+        }
+      } else {
+        saveWrongRecord("문자/어휘 영역", q.meaning, myWord, q.word);
+        alert(`❌ 아쉽습니다! 다시 맞춰보세요.\n(작성한 내용: ${myWord})`);
+      }
+    } else if (currentMode === 'grammar') {
+      const mySentence = assembledTokens.join('');
+      const targetSentence = q.tokens.join('');
+      const isCorrect = (mySentence === targetSentence);
+
+      if (isCorrect) {
+        playCurrentAudio();
+        triggerCelebration();
+        alert(`정답입니다! 👏\n[ ${q.tokens.join(' ')} ]`);
+        currentIdx++;
+        if (currentIdx < currentList.length) {
+          renderGrammarQuestion();
+        } else {
+          currentUser.progress.grammar = true;
+          addRewardPoints(20, `${currentUnit}단원 핵심 문형 (10문항) 완성`);
+          goToMain();
+        }
+      } else {
+        saveWrongRecord("문법/회화 영역", q.meaning, assembledTokens.join(' '), q.tokens.join(' '));
+        alert(`❌ 순서가 맞지 않습니다! 조합창의 카드를 눌러 취소하고 다시 배열해보세요.`);
+      }
+    }
+  }
+
+  function renderCultureQuestion() {
+    const q = currentList[currentIdx];
+    currentAudioText = "";
+    selectedOxChoice = null;
+
+    document.getElementById('quiz-progress').innerText = `${currentIdx + 1} / ${currentList.length}`;
+    document.getElementById('quiz-main-content').className = "sentence-main";
+    document.getElementById('quiz-main-content').innerText = q.q;
+    document.getElementById('quiz-sub-content').innerText = "맞으면 O, 틀리면 X를 선택한 후 [답안 제출]을 누르세요";
+
+    const optBox = document.getElementById('options-box-ox');
+    optBox.innerHTML = '';
+
+    ['O', 'X'].forEach(choice => {
+      const btn = document.createElement('button');
+      btn.className = `btn-ox ${choice === 'O' ? 'btn-o' : 'btn-x'}`;
+      btn.id = `btn-ox-${choice}`;
+      btn.innerText = choice;
+      btn.onclick = () => {
+        selectedOxChoice = choice;
+        document.querySelectorAll('.btn-ox').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+      };
+      optBox.appendChild(btn);
+    });
+  }
+
+  function submitOxAnswer() {
+    if (!selectedOxChoice) {
+      alert("O 또는 X 중 하나를 먼저 선택해주세요!");
+      return;
+    }
+
+    const q = currentList[currentIdx];
+    if (selectedOxChoice === q.ans) {
+      triggerCelebration();
+      alert(`⭕ 정답입니다!\n\n💡 교과서 해설:\n${q.tip}`);
+    } else {
+      saveWrongRecord("문화 유퀴즈", q.q, selectedOxChoice, q.ans);
+      alert(`❌ 틀렸습니다!\n\n💡 교과서 해설:\n${q.tip}`);
+    }
+    
+    currentIdx++;
+    if (currentIdx < currentList.length) {
+      renderCultureQuestion();
+    } else {
+      currentUser.progress.culture = true;
+      addRewardPoints(15, `${currentUnit}단원 문화 유퀴즈 (10문항) 클리어`);
+      goToMain();
+    }
+  }
+
+  /* ---------------- [솔로 스피드런] ---------------- */
+  function openSpeedrunModal() {
+    document.getElementById('speedrun-modal').style.display = 'flex';
+  }
+  function closeSpeedrunModal() {
+    document.getElementById('speedrun-modal').style.display = 'none';
+  }
+  function startSelectedSpeedrun(cat) {
+    closeSpeedrunModal();
+    speedrunCategory = cat;
+    startSoloSpeedrun();
+  }
+
+  function startSoloSpeedrun() {
+    if (timerInterval) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+    }
+    isAnswerLock = false;
+    currentMode = "speedrun";
+    
+    let basePool = [];
+    let modeTitle = "";
+    if (speedrunCategory === 'hira') {
+      basePool = SPEEDRUN_HIRA;
+      modeTitle = "🇯🇵 히라가나 스피드런";
+    } else if (speedrunCategory === 'kata') {
+      basePool = SPEEDRUN_KATA;
+      modeTitle = "🔤 가타카나 스피드런";
+    } else {
+      basePool = [...SPEEDRUN_HIRA, ...SPEEDRUN_KATA];
+      modeTitle = "🔥 통합 가나 스피드런";
+    }
+
+    currentList = shuffleArray(basePool).slice(0, 5);
+    currentIdx = 0;
+    
+    document.getElementById('unit-tabs').style.display = 'none';
+    document.getElementById('quiz-title').innerText = modeTitle;
+    document.getElementById('builder-container').style.display = 'none';
+    document.getElementById('ox-container').style.display = 'none';
+    document.getElementById('options-box-5').style.display = 'flex';
+    document.getElementById('review-bubble').style.display = 'none';
+    document.getElementById('multi-race-box').style.display = 'none';
+
+    switchScreen('screen-game');
+    
+    startTime = Date.now();
+    timerInterval = setInterval(() => {
+      const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+      document.getElementById('quiz-progress').innerText = `⏱ ${elapsed}s`;
+    }, 100);
+
+    renderSpeedrunQuestion();
+  }
+
+  function renderSpeedrunQuestion() {
+    isAnswerLock = false;
+    const q = currentList[currentIdx];
+    currentAudioText = q.kana;
+    playCurrentAudio();
+
+    document.getElementById('quiz-progress').innerText = `${currentIdx + 1} / ${currentList.length}`;
+    document.getElementById('quiz-main-content').className = "kana-main";
+    document.getElementById('quiz-main-content').innerText = q.kana;
+    document.getElementById('quiz-sub-content').innerText = "정확한 한국어 발음을 선택하세요 (틀려도 다시 선택 가능)";
+    
+    const reviewBubble = document.getElementById('review-bubble');
+    reviewBubble.style.display = 'none';
+
+    const optBox = document.getElementById('options-box-5');
+    optBox.innerHTML = '';
+    
+    shuffleArray(q.options).slice(0, 5).forEach(opt => {
+      const btn = document.createElement('button');
+      btn.className = 'btn-option-5';
+      btn.innerText = opt;
+      btn.onclick = () => {
+        if (isAnswerLock || btn.disabled) return;
+
+        if (opt === q.ans) {
+          isAnswerLock = true;
+          btn.classList.add('btn-correct');
+          
+          reviewBubble.innerText = `✨ 정답! [ ${q.kana} = ${q.ans} ]`;
+          reviewBubble.style.display = 'inline-block';
+
+          setTimeout(() => {
+            currentIdx++;
+            if (currentMode === 'multi' && multiRoomRef) {
+              multiRoomRef.child('players/' + currentUser.id).update({
+                progress: currentIdx
+              });
+            }
+
+            if (currentIdx < currentList.length) {
+              renderSpeedrunQuestion();
+            } else {
+              if (currentMode === 'multi') {
+                finishMultiSpeedrun();
+              } else {
+                finishSoloSpeedrun();
+              }
+            }
+          }, 450);
+        } else {
+          btn.classList.add('btn-wrong');
+          btn.disabled = true;
+          saveWrongRecord("가나 스피드런", `글자 [ ${q.kana} ]의 발음`, opt, q.ans);
+        }
+      };
+      optBox.appendChild(btn);
+    });
+  }
+
+  function finishSoloSpeedrun() {
+    clearInterval(timerInterval);
+    timerInterval = null;
+
+    const finalTime = parseFloat(((Date.now() - startTime) / 1000).toFixed(1));
+    
+    if (!currentUser.records) currentUser.records = { all: null, hira: null, kata: null };
+    const prevBest = currentUser.records[speedrunCategory];
+    let isBest = false;
+
+    if (prevBest === null || prevBest === undefined || finalTime < prevBest) {
+      currentUser.records[speedrunCategory] = finalTime;
+      isBest = true;
+    }
+    
+    currentUser.points = (currentUser.points || 0) + 10;
+    syncWithDB();
+
+    triggerCelebration();
+    alert(`🎉 5문항 완주 성공!\n기록: ${finalTime}초${isBest ? ' (⭐ 최고기록 경신!)' : ''}\n완주 보너스 +10P 적립! [우리 반 기여도 +10점]`);
+    currentRankTab = speedrunCategory;
+    showRanking();
+  }
+
+  /* ---------------- [실시간 멀티 배틀] ---------------- */
+  function openMultiLobbyModal() {
+    document.getElementById('input-room-code').value = '';
+    document.getElementById('multi-lobby-modal').style.display = 'flex';
+  }
+
+  function closeMultiLobbyModal() {
+    document.getElementById('multi-lobby-modal').style.display = 'none';
+  }
+
+  function createMultiRoom() {
+    closeMultiLobbyModal();
+    const code = String(Math.floor(1000 + Math.random() * 9000));
+    currentRoomId = code;
+    isRoomHost = true;
+    multiRoomRef = db.ref('battle_rooms/' + code);
+
+    const combined = [...SPEEDRUN_HIRA, ...SPEEDRUN_KATA];
+    const roomQuestions = shuffleArray(combined).slice(0, 5);
+
+    const initialData = {
+      code: code,
+      hostId: currentUser.id,
+      status: 'waiting',
+      questions: roomQuestions,
+      players: {},
+      createdAt: Date.now()
+    };
+    initialData.players[currentUser.id] = {
+      id: currentUser.id,
+      nick: currentUser.nick,
+      title: currentUser.title,
+      progress: 0,
+      finishTime: null,
+      rank: 0
+    };
+
+    multiRoomRef.set(initialData).then(() => {
+      multiRoomRef.child('players/' + currentUser.id).onDisconnect().remove();
+      enterLobbyScreen(code);
+      listenMultiRoom(code);
+    });
+  }
+
+  function joinMultiRoom() {
+    const code = document.getElementById('input-room-code').value.trim();
+    if (!code || code.length < 4) {
+      alert("4자리 방 코드를 정확히 입력해주세요!");
+      return;
+    }
+
+    db.ref('battle_rooms/' + code).once('value', snapshot => {
+      const room = snapshot.val();
+      if (!room) {
+        alert("존재하지 않는 방 코드입니다!");
+        return;
+      }
+      if (room.status !== 'waiting') {
+        alert("이미 게임이 진행 중인 방입니다!");
+        return;
+      }
+      const pCount = room.players ? Object.keys(room.players).length : 0;
+      if (pCount >= 8) {
+        alert("방 정원(8명)이 꽉 찼습니다!");
+        return;
+      }
+
+      closeMultiLobbyModal();
+      currentRoomId = code;
+      isRoomHost = (room.hostId === currentUser.id);
+      multiRoomRef = db.ref('battle_rooms/' + code);
+
+      multiRoomRef.child('players/' + currentUser.id).set({
+        id: currentUser.id,
+        nick: currentUser.nick,
+        title: currentUser.title,
+        progress: 0,
+        finishTime: null,
+        rank: 0
+      }).then(() => {
+        multiRoomRef.child('players/' + currentUser.id).onDisconnect().remove();
+        enterLobbyScreen(code);
+        listenMultiRoom(code);
+      });
+    });
+  }
+
+  function enterLobbyScreen(code) {
+    document.getElementById('lobby-code-display').innerText = code;
+    document.getElementById('host-controls').style.display = isRoomHost ? 'block' : 'none';
+    document.getElementById('guest-controls').style.display = isRoomHost ? 'none' : 'block';
+    switchScreen('screen-lobby');
+  }
+
+  function listenMultiRoom(code) {
+    multiRoomRef.on('value', snapshot => {
+      const room = snapshot.val();
+      if (!room) {
+        if (currentRoomId) {
+          alert("방이 종료되었거나 나갔습니다.");
+          leaveMultiRoom();
+          goToMain();
+        }
+        return;
+      }
+
+      if (document.getElementById('screen-lobby').classList.contains('active')) {
+        renderLobbyParticipants(room.players || {});
+      }
+
+      if (room.status === 'playing' && currentMode !== 'multi') {
+        startMultiGameClient(room.questions);
+      }
+
+      if (room.status === 'playing' && currentMode === 'multi') {
+        renderMultiRaceTracks(room.players || {});
+      }
+    });
+  }
+
+  function renderLobbyParticipants(players) {
+    const list = document.getElementById('lobby-participant-list');
+    list.innerHTML = '';
+    const arr = Object.values(players);
+    document.getElementById('lobby-count-display').innerText = `${arr.length} / 8명`;
+
+    arr.forEach(p => {
+      const div = document.createElement('div');
+      const isMe = p.id === currentUser.id;
+      div.className = `participant-item ${isMe ? 'is-me' : ''}`;
+      div.innerHTML = `
+        <span><span style="font-size:11px; color:var(--text-muted);">${p.title || ''}</span> <strong>${p.nick}</strong></span>
+        <span>${p.finishTime ? '🏁 ' + p.finishTime + 's' : (p.progress ? p.progress + '/5' : '대기 중')}</span>
+      `;
+      list.appendChild(div);
+    });
+  }
+
+  function leaveMultiRoom() {
+    if (multiRoomRef && currentRoomId && currentUser.id) {
+      multiRoomRef.child('players/' + currentUser.id).remove();
+      multiRoomRef.off();
+      multiRoomRef = null;
+      currentRoomId = null;
+      isRoomHost = false;
+    }
+  }
+
+  function hostStartMultiGame() {
+    if (!isRoomHost || !multiRoomRef) return;
+    multiRoomRef.update({
+      status: 'playing',
+      startedAt: Date.now()
+    });
+  }
+
+  function startMultiGameClient(questions) {
+    currentMode = 'multi';
+    currentList = questions;
+    currentIdx = 0;
+    isAnswerLock = false;
+
+    document.getElementById('unit-tabs').style.display = 'none';
+    document.getElementById('quiz-title').innerText = "⚔️ 실시간 멀티 배틀";
+    document.getElementById('builder-container').style.display = 'none';
+    document.getElementById('ox-container').style.display = 'none';
+    document.getElementById('options-box-5').style.display = 'flex';
+    document.getElementById('review-bubble').style.display = 'none';
+    document.getElementById('multi-race-box').style.display = 'block';
+
+    switchScreen('screen-game');
+    startTime = Date.now();
+    renderSpeedrunQuestion();
+  }
+
+  function renderMultiRaceTracks(players) {
+    const trackBox = document.getElementById('multi-race-track-list');
+    trackBox.innerHTML = '';
+    Object.values(players).forEach(p => {
+      const isMe = p.id === currentUser.id;
+      const pct = ((p.progress || 0) / 5) * 100;
+      const row = document.createElement('div');
+      row.className = 'multi-track-row';
+      row.innerHTML = `
+        <span class="multi-track-name">${p.nick}</span>
+        <div class="multi-track-bar-bg">
+          <div class="multi-track-bar-fill ${isMe ? 'me' : ''}" style="width: ${pct}%;"></div>
+        </div>
+        <span style="width: 38px; text-align: right;">${p.finishTime ? p.finishTime + 's' : (p.progress || 0) + '/5'}</span>
+      `;
+      trackBox.appendChild(row);
+    });
+  }
+
+  function finishMultiSpeedrun() {
+    const finalTime = parseFloat(((Date.now() - startTime) / 1000).toFixed(1));
+    if (multiRoomRef && currentUser.id) {
+      multiRoomRef.child('players/' + currentUser.id).update({
+        progress: 5,
+        finishTime: finalTime
+      });
+    }
+
+    currentUser.points = (currentUser.points || 0) + 15;
+    syncWithDB();
+
+    triggerCelebration();
+    alert(`🏁 멀티 배틀 완주 완료!\n기록: ${finalTime}초 (+15P 획득)`);
+  }
+
+  // ---------------- [랭킹 및 학급 대항전] ----------------
+  function showRanking() {
+    switchScreen('screen-ranking');
+    renderRankingList();
+  }
+
+  function switchRankingTab(tabKey) {
+    currentRankTab = tabKey;
+    document.querySelectorAll('.rank-tab-btn').forEach(btn => btn.classList.remove('active'));
+    const target = document.getElementById(`tab-rank-${tabKey}`);
+    if (target) target.classList.add('active');
+    renderRankingList();
+  }
+
+  function renderRankingList() {
+    const list = document.getElementById('ranking-list');
+    const myRankBox = document.getElementById('my-ranking-box');
+    list.innerHTML = '';
+    myRankBox.innerHTML = '';
+
+    if (currentRankTab === 'class') {
+      const classScores = {};
+      studentList.forEach(s => {
+        const cls = s.className || parseClassName(s.id);
+        classScores[cls] = (classScores[cls] || 0) + (s.points || 0);
+      });
+
+      const sortedClasses = Object.entries(classScores).sort((a, b) => b[1] - a[1]);
+      sortedClasses.forEach(([clsName, pts], idx) => {
+        const isMyClass = currentUser.className === clsName;
+        const div = document.createElement('div');
+        div.className = `rank-item ${isMyClass ? 'my-rank' : ''}`;
+        div.innerHTML = `
+          <span><strong>${idx + 1}위</strong> ${clsName}</span>
+          <span style="color:var(--accent); font-weight:800;">총 ${pts}P</span>
+        `;
+        list.appendChild(div);
+      });
+      return;
+    }
+
+    const validStudents = studentList
+      .filter(s => s.records && typeof s.records[currentRankTab] === 'number')
+      .sort((a, b) => a.records[currentRankTab] - b.records[currentRankTab]);
+
+    if (validStudents.length === 0) {
+      list.innerHTML = '<div style="text-align:center; padding:30px; color:#94A3B8; font-size:13px;">아직 기록된 랭킹 데이터가 없습니다.</div>';
+      return;
+    }
+
+    validStudents.slice(0, 15).forEach((s, idx) => {
+      const isMe = s.id === currentUser.id;
+      const div = document.createElement('div');
+      div.className = `rank-item ${isMe ? 'my-rank' : ''}`;
+      div.innerHTML = `
+        <span><strong>${idx + 1}위</strong> [${s.className || '기타'}] ${s.title || ''} ${s.nick}</span>
+        <span style="font-weight:bold; color:var(--primary);">${s.records[currentRankTab]}초</span>
+      `;
+      list.appendChild(div);
+    });
+  }
+</script>
+</body>
+</html>
