@@ -11,7 +11,7 @@
   <!-- 축하 폭죽(Confetti) 라이브러리 -->
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
-  <!-- 외부 스타일시트 분리 -->
+  <!-- 외부 스타일시트 -->
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -25,7 +25,7 @@
       <button class="btn-shop-top" id="btn-shop" onclick="openShopModal()">🛒 칭호 상점</button>
       <button class="btn-logout" id="btn-logout" onclick="handleLogout()">변경</button>
     </div>
-    <span class="app-version" onclick="handleSecretTeacherTap()" title="교사용 관리자 진입 (연속 5번 터치)">v2.6 🎌</span>
+    <span class="app-version" onclick="handleSecretTeacherTap()" title="교사용 관리자 진입 (연속 5번 터치)">v2.7 🎌</span>
   </div>
 
   <!-- 1. 로그인 화면 -->
@@ -34,7 +34,7 @@
       <span style="font-size: 46px; display: inline-block; animation: popIn 0.4s ease; cursor: pointer;" onclick="handleSecretTeacherTap()">🍱</span>
     </div>
     <h1 style="font-size: 24px; font-weight: 900; color: var(--primary); text-align: center; cursor: pointer; user-select: none;" onclick="handleSecretTeacherTap()">가나고 GO!</h1>
-    <p style="font-size: 13px; color: var(--text-muted); text-align: center; margin-bottom: 24px; font-weight: 600;">고교 일본어 기초 완성 & 학급 대항 리그</p>
+    <p style="font-size: 13px; color: var(--text-muted); text-align: center; margin-bottom: 24px; font-weight: 600;">고교 일본어 기초 완성 & 주간 학급 대항 리그</p>
     
     <div class="input-group">
       <label>학번 (예: 20315 ➔ 2학년 3반 자동 분류)</label>
@@ -54,18 +54,27 @@
 
   <!-- 2. 메인 화면 -->
   <div class="screen" id="screen-main">
-    <div style="background: white; border: 2px solid var(--border); border-radius: 14px; padding: 12px 14px; margin-bottom: 14px; display: flex; align-items: center; gap: 10px;">
+    <!-- 주간 챌린지 상단 배너 -->
+    <div class="weekly-challenge-banner" onclick="showRanking()">
+      <div>
+        <div style="font-size: 11px; opacity: 0.9; font-weight: 600;">⚡ 주간 리그 진행 중 (월요일 0시 리셋)</div>
+        <div style="font-size: 13px; font-weight: 800; margin-top: 2px;" id="banner-weekly-text">우리 반 이번 주 점수 불러오는 중...</div>
+      </div>
+      <span class="weekly-dday-badge" id="banner-weekly-dday">D-?</span>
+    </div>
+
+    <div style="background: white; border: 2px solid var(--border); border-radius: 14px; padding: 12px 14px; margin-bottom: 12px; display: flex; align-items: center; gap: 10px;">
       <span style="font-size: 26px; cursor: pointer; user-select: none;" onclick="handleSecretTeacherTap()" title="비밀 터치 5회">🍙</span>
       <div style="flex-grow: 1;">
         <div style="font-size: 13px; font-weight: 800; color: var(--text);" id="main-class-tag" onclick="handleSecretTeacherTap()">소속: 학급 불러오는 중...</div>
-        <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">문제를 풀어 우리 반 포인트를 올려보세요!</div>
+        <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">문제를 풀어 이번 주 우리 반 순위를 올려보세요!</div>
       </div>
     </div>
 
     <div class="category-card speedrun-card" onclick="openSpeedrunModal()">
       <div class="category-info">
         <h3>🔥 가나 스피드런 (솔로 랭킹)</h3>
-        <p>5문항 개인 타임어택 (+10P / 반 기여도 +10점)</p>
+        <p>5문항 개인 타임어택 (+10P / 주간 반 기여도 +10점)</p>
       </div>
       <span style="font-size: 22px;">⚡</span>
     </div>
@@ -110,7 +119,7 @@
       <span style="font-size: 20px;">🔍</span>
     </div>
 
-    <button class="btn-3d btn-accent" style="margin-top: auto;" onclick="showRanking()">🏆 주간 랭킹 & 학급 대항전</button>
+    <button class="btn-3d btn-accent" style="margin-top: auto;" onclick="showRanking()">🏆 주간 랭킹 & 명예의 전당</button>
   </div>
 
   <!-- 3. 실시간 배틀 대기실 화면 -->
@@ -195,10 +204,10 @@
     </div>
     
     <div class="rank-tabs">
-      <button class="rank-tab-btn active" id="tab-rank-all" onclick="switchRankingTab('all')">통합</button>
-      <button class="rank-tab-btn" id="tab-rank-hira" onclick="switchRankingTab('hira')">히라</button>
-      <button class="rank-tab-btn" id="tab-rank-kata" onclick="switchRankingTab('kata')">가타</button>
-      <button class="rank-tab-btn" id="tab-rank-class" onclick="switchRankingTab('class')" style="color:var(--accent);">🏆학급</button>
+      <button class="rank-tab-btn active" id="tab-rank-weekly-class" onclick="switchRankingTab('weekly-class')" style="color:var(--accent);">🏆주간학급</button>
+      <button class="rank-tab-btn" id="tab-rank-weekly-user" onclick="switchRankingTab('weekly-user')">🔥주간개인</button>
+      <button class="rank-tab-btn" id="tab-rank-class" onclick="switchRankingTab('class')">누적학급</button>
+      <button class="rank-tab-btn" id="tab-rank-all" onclick="switchRankingTab('all')">스피드런</button>
     </div>
 
     <div class="leaderboard-list" id="ranking-list"></div>
@@ -223,10 +232,10 @@
       <h2 style="font-size: 16px; font-weight:800;">👩‍🏫 교사용 학생 관리 대시보드</h2>
       <span></span>
     </div>
-    <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">실명 매핑, 포인트 관리 및 모드별 랭킹 초기화</p>
+    <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">실명 매핑, 주간 포인트 현황 및 일괄 초기화</p>
 
     <div class="admin-bar">
-      <button class="btn-3d btn-danger-3d" style="padding: 10px; font-size: 12px;" onclick="resetSpeedrunRanking()">🔥 전체 스피드런 랭킹만 초기화</button>
+      <button class="btn-3d btn-danger-3d" style="padding: 10px; font-size: 12px;" onclick="resetSpeedrunRanking()">🔥 전체 스피드런 기록만 초기화</button>
       <button class="btn-3d" style="background:#475569; border-bottom:4px solid #1E293B; padding: 10px; font-size: 12px;" onclick="resetAllStudentData()">⚠️ 학생 명단 유지 + 진도/포인트/기록/칭호 완전 리셋</button>
     </div>
 
@@ -239,8 +248,8 @@
           <th>어휘</th>
           <th>회화</th>
           <th>문화</th>
-          <th>통합</th>
-          <th>포인트</th>
+          <th>이번주P</th>
+          <th>누적P</th>
           <th>관리</th>
         </tr>
       </thead>
@@ -305,7 +314,6 @@
   </div>
 </div>
 
-<!-- 데이터 스크립트 먼저 로드 후 메인 로직 로드 -->
 <script src="data.js"></script>
 <script src="app.js"></script>
 </body>

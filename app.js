@@ -23,7 +23,29 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
 let studentList = [];
-let currentRankTab = "all";
+let currentRankTab = "weekly-class";
+
+// ---------------- [주간 챌린지: 월요일 0시 기준 주차 계산] ----------------
+function getMondayWeekKey(d = new Date()) {
+  const date = new Date(d.getTime());
+  date.setHours(0, 0, 0, 0);
+  const day = (date.getDay() + 6) % 7;
+  date.setDate(date.getDate() - day + 3);
+  const firstThursday = date.getTime();
+  date.setMonth(0, 1);
+  if (date.getDay() !== 4) {
+    date.setMonth(0, 1 + ((4 - date.getDay() + 7) % 7));
+  }
+  const weekNum = 1 + Math.ceil((firstThursday - date.getTime()) / 604800000);
+  return `${date.getFullYear()}-W${String(weekNum).padStart(2, '0')}`;
+}
+
+function getDaysUntilNextMonday() {
+  const now = new Date();
+  const day = now.getDay(); // 0(일) ~ 6(토)
+  const diff = (day === 0 ? 1 : 8 - day);
+  return diff;
+}
 
 function parseClassName(studentId) {
   if (!studentId || studentId.length < 3) return "기타 학급";
@@ -48,12 +70,16 @@ let currentUser = {
   progress: { vocab: false, grammar: false, culture: false },
   records: { all: null, hira: null, kata: null },
   points: 0,
+  weeklyPoints: 0,
+  currentWeekKey: getMondayWeekKey(),
   lastLoginDate: ""
 };
 
-// 실시간 DB 데이터 반영 리스너 (서버 리셋 시 로컬 저장소 동시 갱신)
+// 실시간 DB 데이터 반영 리스너
 db.ref('students').on('value', (snapshot) => {
   const data = snapshot.val();
+  const activeWeek = getMondayWeekKey();
+
   if (data) {
     studentList = Object.values(data);
     if (currentUser.id) {
@@ -62,6 +88,15 @@ db.ref('students').on('value', (snapshot) => {
         currentUser.progress = myData.progress || { vocab: false, grammar: false, culture: false };
         currentUser.records = myData.records || { all: null, hira: null, kata: null };
         currentUser.points = typeof myData.points === 'number' ? myData.points : 0;
+        
+        // 월요일 리셋 검증
+        if (myData.currentWeekKey === activeWeek) {
+          currentUser.weeklyPoints = typeof myData.weeklyPoints === 'number' ? myData.weeklyPoints : 0;
+        } else {
+          currentUser.weeklyPoints = 0;
+          currentUser.currentWeekKey = activeWeek;
+        }
+
         if (myData.title) currentUser.title = myData.title;
         if (myData.ownedTitles) currentUser.ownedTitles = myData.ownedTitles;
         if (myData.className) currentUser.className = myData.className;
@@ -71,6 +106,8 @@ db.ref('students').on('value', (snapshot) => {
         updatePointUI();
       } else {
         currentUser.points = 0;
+        currentUser.weeklyPoints = 0;
+        currentUser.currentWeekKey = activeWeek;
         currentUser.progress = { vocab: false, grammar: false, culture: false };
         currentUser.records = { all: null, hira: null, kata: null };
         currentUser.title = "🐣 가나 병아리";
@@ -84,6 +121,8 @@ db.ref('students').on('value', (snapshot) => {
     studentList = [];
     if (currentUser.id) {
       currentUser.points = 0;
+      currentUser.weeklyPoints = 0;
+      currentUser.currentWeekKey = activeWeek;
       currentUser.progress = { vocab: false, grammar: false, culture: false };
       currentUser.records = { all: null, hira: null, kata: null };
       currentUser.title = "🐣 가나 병아리";
@@ -93,6 +132,8 @@ db.ref('students').on('value', (snapshot) => {
       updatePointUI();
     }
   }
+
+  updateWeeklyBanner();
 
   if (document.getElementById('screen-ranking').classList.contains('active')) {
     renderRankingList();
@@ -104,6 +145,12 @@ db.ref('students').on('value', (snapshot) => {
 
 function syncWithDB() {
   if (!currentUser.id) return;
+  const activeWeek = getMondayWeekKey();
+  if (currentUser.currentWeekKey !== activeWeek) {
+    currentUser.weeklyPoints = 0;
+    currentUser.currentWeekKey = activeWeek;
+  }
+
   db.ref('students/' + currentUser.id).set({
     id: currentUser.id,
     name: currentUser.name,
@@ -114,10 +161,13 @@ function syncWithDB() {
     progress: currentUser.progress,
     records: currentUser.records || { all: null, hira: null, kata: null },
     points: currentUser.points || 0,
+    weeklyPoints: currentUser.weeklyPoints || 0,
+    currentWeekKey: currentUser.currentWeekKey,
     lastLoginDate: currentUser.lastLoginDate || "",
     updatedAt: Date.now()
   });
   localStorage.setItem('ganago_user', JSON.stringify(currentUser));
+  updateWeeklyBanner();
 }
 
 function getTodayString() {
@@ -129,21 +179,29 @@ function checkDailyAttendance() {
   const today = getTodayString();
   if (currentUser.lastLoginDate !== today) {
     currentUser.points = (currentUser.points || 0) + 10;
+    currentUser.weeklyPoints = (currentUser.weeklyPoints || 0) + 10;
     currentUser.lastLoginDate = today;
     syncWithDB();
     setTimeout(() => {
       triggerCelebration();
-      alert(`🎉 오늘 첫 로그인! 일일 출석 보너스 +10P가 적립되었습니다.\n(현재 보유: ${currentUser.points}P)`);
+      alert(`🎉 오늘 첫 로그인! 출석 보너스 +10P (주간 기여도 +10점)\n(현재 보유: ${currentUser.points}P)`);
     }, 500);
   }
 }
 
 function addRewardPoints(amount, reason) {
+  const activeWeek = getMondayWeekKey();
+  if (currentUser.currentWeekKey !== activeWeek) {
+    currentUser.weeklyPoints = 0;
+    currentUser.currentWeekKey = activeWeek;
+  }
+
   currentUser.points = (currentUser.points || 0) + amount;
+  currentUser.weeklyPoints = (currentUser.weeklyPoints || 0) + amount;
   syncWithDB();
   updatePointUI();
   triggerCelebration();
-  alert(`⭐ ${reason} 달성!\n+${amount}P가 적립되었습니다. (현재 보유: ${currentUser.points}P)`);
+  alert(`⭐ ${reason} 달성!\n+${amount}P 획득 (우리 반 주간 점수 +${amount}점)`);
 }
 
 window.addEventListener('DOMContentLoaded', () => {
@@ -152,6 +210,11 @@ window.addEventListener('DOMContentLoaded', () => {
   if (saved) {
     try {
       currentUser = JSON.parse(saved);
+      const activeWeek = getMondayWeekKey();
+      if (currentUser.currentWeekKey !== activeWeek) {
+        currentUser.weeklyPoints = 0;
+        currentUser.currentWeekKey = activeWeek;
+      }
       if (!currentUser.records) currentUser.records = { all: null, hira: null, kata: null };
       if (!currentUser.ownedTitles) currentUser.ownedTitles = ["t_chick"];
       if (!currentUser.title) currentUser.title = "🐣 가나 병아리";
@@ -171,7 +234,29 @@ function applyUserUI() {
   const badgeText = currentUser.id ? `${currentUser.title} ${currentUser.nick}` : "👤 게스트";
   document.getElementById('user-badge').innerText = badgeText;
   updatePointUI();
-  document.getElementById('main-class-tag').innerText = `소속: [${currentUser.className || '기타 학급'}] | 문제를 풀고 우리 반 순위를 올리세요!`;
+  document.getElementById('main-class-tag').innerText = `소속: [${currentUser.className || '기타 학급'}]`;
+  updateWeeklyBanner();
+}
+
+function updateWeeklyBanner() {
+  const ddayEl = document.getElementById('banner-weekly-dday');
+  const textEl = document.getElementById('banner-weekly-text');
+  if (!ddayEl || !textEl) return;
+
+  ddayEl.innerText = `D-${getDaysUntilNextMonday()}`;
+
+  const activeWeek = getMondayWeekKey();
+  const myClass = currentUser.className || parseClassName(currentUser.id);
+
+  let classWeeklyTotal = 0;
+  studentList.forEach(s => {
+    const cls = s.className || parseClassName(s.id);
+    if (cls === myClass && s.currentWeekKey === activeWeek) {
+      classWeeklyTotal += (s.weeklyPoints || 0);
+    }
+  });
+
+  textEl.innerText = `[${myClass}] 이번 주 ${classWeeklyTotal}P 획득 (랭킹 터치)`;
 }
 
 function updatePointUI() {
@@ -196,9 +281,9 @@ function handleLogin() {
     return;
   }
 
-  if (!nick) {
-    nick = name;
-  }
+  if (!nick) nick = name;
+
+  const activeWeek = getMondayWeekKey();
 
   db.ref('students/' + cleanId).once('value').then(snapshot => {
     const existing = snapshot.val();
@@ -218,6 +303,8 @@ function handleLogin() {
       currentUser.progress = existing.progress || { vocab: false, grammar: false, culture: false };
       currentUser.records = existing.records || { all: null, hira: null, kata: null };
       currentUser.points = typeof existing.points === 'number' ? existing.points : 0;
+      currentUser.weeklyPoints = (existing.currentWeekKey === activeWeek && typeof existing.weeklyPoints === 'number') ? existing.weeklyPoints : 0;
+      currentUser.currentWeekKey = activeWeek;
       currentUser.lastLoginDate = existing.lastLoginDate || "";
 
       applyUserUI();
@@ -234,6 +321,8 @@ function handleLogin() {
       currentUser.progress = { vocab: false, grammar: false, culture: false };
       currentUser.records = { all: null, hira: null, kata: null };
       currentUser.points = 0;
+      currentUser.weeklyPoints = 0;
+      currentUser.currentWeekKey = activeWeek;
       currentUser.lastLoginDate = "";
 
       applyUserUI();
@@ -255,7 +344,7 @@ function handleLogout() {
       title: "🐣 가나 병아리", ownedTitles: ["t_chick"],
       progress: { vocab: false, grammar: false, culture: false },
       records: { all: null, hira: null, kata: null },
-      points: 0, lastLoginDate: ""
+      points: 0, weeklyPoints: 0, currentWeekKey: getMondayWeekKey(), lastLoginDate: ""
     };
     applyUserUI();
     document.getElementById('input-student-id').value = '';
@@ -378,8 +467,12 @@ function renderTeacherTable() {
     return;
   }
 
+  const activeWeek = getMondayWeekKey();
+
   studentList.forEach(item => {
-    const rec = item.records || {};
+    const isCurrentWeek = (item.currentWeekKey === activeWeek);
+    const weeklyP = isCurrentWeek ? (item.weeklyPoints || 0) : 0;
+
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>${item.className || parseClassName(item.id)}</td>
@@ -388,7 +481,7 @@ function renderTeacherTable() {
       <td>${item.progress && item.progress.vocab ? '✅' : '❌'}</td>
       <td>${item.progress && item.progress.grammar ? '✅' : '❌'}</td>
       <td>${item.progress && item.progress.culture ? '✅' : '❌'}</td>
-      <td>${typeof rec.all === 'number' ? rec.all + 's' : '-'}</td>
+      <td><strong style="color:var(--accent);">${weeklyP}P</strong></td>
       <td><strong>${item.points || 0}P</strong></td>
       <td>
         <button class="btn-point-mod" onclick="adminGrantPoint('${item.id}', '${item.name}')">+조정</button>
@@ -404,18 +497,26 @@ function adminGrantPoint(studentId, studentName) {
   if (!input) return;
   const delta = parseInt(input.trim(), 10);
   if (!isNaN(delta)) {
-    db.ref(`students/${studentId}/points`).transaction((current) => (current || 0) + delta);
+    db.ref(`students/${studentId}`).transaction((student) => {
+      if (student) {
+        student.points = (student.points || 0) + delta;
+        student.weeklyPoints = (student.weeklyPoints || 0) + delta;
+      }
+      return student;
+    });
     alert(`[${studentName}] 학생에게 ${delta}P를 반영했습니다.`);
   }
 }
 
 // 개별 학생 초기화 (칭호 포함 리셋)
 function resetSingleStudent(studentId, studentName) {
-  if (confirm(`⚠️ [${studentName}] 학생의 모든 진도, 포인트, 스피드런 기록, 보유 칭호를 초기화하시겠습니까?\n(계정 명단은 그대로 유지됩니다)`)) {
+  if (confirm(`⚠️ [${studentName}] 학생의 진도, 포인트, 주간 점수, 보유 칭호를 초기화하시겠습니까?`)) {
     const resetData = {
       progress: { vocab: false, grammar: false, culture: false },
       records: { all: null, hira: null, kata: null },
       points: 0,
+      weeklyPoints: 0,
+      currentWeekKey: getMondayWeekKey(),
       title: "🐣 가나 병아리",
       ownedTitles: ["t_chick"],
       updatedAt: Date.now()
@@ -423,16 +524,12 @@ function resetSingleStudent(studentId, studentName) {
 
     db.ref(`students/${studentId}`).update(resetData).then(() => {
       if (currentUser.id === studentId) {
-        currentUser.progress = resetData.progress;
-        currentUser.records = resetData.records;
-        currentUser.points = 0;
-        currentUser.title = "🐣 가나 병아리";
-        currentUser.ownedTitles = ["t_chick"];
+        Object.assign(currentUser, resetData);
         localStorage.setItem('ganago_user', JSON.stringify(currentUser));
         applyUserUI();
         updateBadges();
       }
-      alert(`[${studentName}] 학생의 진도, 포인트, 칭호가 기본값으로 초기화되었습니다.`);
+      alert(`[${studentName}] 학생 데이터가 완전히 초기화되었습니다.`);
     }).catch(err => {
       alert("초기화 실패: " + err.message);
     });
@@ -440,7 +537,7 @@ function resetSingleStudent(studentId, studentName) {
 }
 
 function resetSpeedrunRanking() {
-  if (confirm("⚠️ 모든 학생의 스피드런 기록만 전부 초기화하시겠습니까?\n\n(학생 계정, 포인트, 진도는 유지됩니다)")) {
+  if (confirm("⚠️ 모든 학생의 스피드런 기록만 전부 초기화하시겠습니까?")) {
     const updates = {};
     studentList.forEach(item => {
       updates[`students/${item.id}/records`] = { all: null, hira: null, kata: null };
@@ -449,7 +546,7 @@ function resetSpeedrunRanking() {
     db.ref().update(updates).then(() => {
       if (currentUser.id) currentUser.records = { all: null, hira: null, kata: null };
       localStorage.setItem('ganago_user', JSON.stringify(currentUser));
-      alert("전체 스피드런 랭킹 기록이 깔끔하게 초기화되었습니다! 🔥");
+      alert("전체 스피드런 랭킹 기록이 초기화되었습니다! 🔥");
     }).catch(err => {
       alert("초기화 실패: " + err.message);
     });
@@ -458,26 +555,26 @@ function resetSpeedrunRanking() {
 
 // 전체 학생 일괄 초기화 (칭호 포함 리셋)
 async function resetAllStudentData() {
-  const input = prompt("⚠️ 모든 학생의 진도, 포인트, 기록, [보유 칭호]까지 일괄 초기화합니다.\n(학생 명단/학번/이름은 유지됩니다)\n\n진행하려면 관리자 비밀번호 또는 '초기화'를 입력하세요:");
+  const input = prompt("⚠️ 모든 학생의 진도, 누적 포인트, 주간 점수, 칭호를 일괄 초기화합니다.\n(학번/이름 명단은 유지)\n\n진행하려면 관리자 비밀번호 또는 '초기화'를 입력하세요:");
   if (!input) return;
 
   const trimmedInput = input.trim();
   const inputHash = await sha256(trimmedInput);
   
-  const isPwMatch = (inputHash === SECURE_TEACHER_HASH);
-  const isWordMatch = (trimmedInput === '초기화');
-
-  if (isPwMatch || isWordMatch) {
+  if (inputHash === SECURE_TEACHER_HASH || trimmedInput === '초기화') {
     if (studentList.length === 0) {
       alert("초기화할 등록 학생 데이터가 없습니다.");
       return;
     }
 
     const updates = {};
+    const activeWeek = getMondayWeekKey();
     studentList.forEach(student => {
       updates[`students/${student.id}/progress`] = { vocab: false, grammar: false, culture: false };
       updates[`students/${student.id}/records`] = { all: null, hira: null, kata: null };
       updates[`students/${student.id}/points`] = 0;
+      updates[`students/${student.id}/weeklyPoints`] = 0;
+      updates[`students/${student.id}/currentWeekKey`] = activeWeek;
       updates[`students/${student.id}/title`] = "🐣 가나 병아리";
       updates[`students/${student.id}/ownedTitles`] = ["t_chick"];
       updates[`students/${student.id}/updatedAt`] = Date.now();
@@ -488,6 +585,8 @@ async function resetAllStudentData() {
         currentUser.progress = { vocab: false, grammar: false, culture: false };
         currentUser.records = { all: null, hira: null, kata: null };
         currentUser.points = 0;
+        currentUser.weeklyPoints = 0;
+        currentUser.currentWeekKey = activeWeek;
         currentUser.title = "🐣 가나 병아리";
         currentUser.ownedTitles = ["t_chick"];
         localStorage.setItem('ganago_user', JSON.stringify(currentUser));
@@ -495,12 +594,12 @@ async function resetAllStudentData() {
         updateBadges();
       }
       renderTeacherTable();
-      alert("모든 학생의 진도, 기록, 포인트 및 [칭호]가 깔끔하게 초기화되었습니다! ✨\n(학생 명단은 안전하게 유지됩니다)");
+      alert("전체 데이터가 0으로 완벽히 리셋되었습니다! ✨");
     }).catch(err => {
-      alert("초기화 실패 (Firebase 통신 권한 확인 필요): " + err.message);
+      alert("초기화 실패: " + err.message);
     });
   } else {
-    alert("❌ 입력값이 일치하지 않아 초기화가 취소되었습니다.\n(관리자 비밀번호 또는 '초기화'를 정확히 입력해주세요)");
+    alert("❌ 비밀번호가 일치하지 않습니다.");
   }
 }
 
@@ -513,7 +612,7 @@ function speakJapanese(text) {
     utterance.rate = 0.9;
     window.speechSynthesis.speak(utterance);
   } catch (e) {
-    console.warn("TTS 미지원 또는 제한", e);
+    console.warn("TTS 미지원", e);
   }
 }
 
@@ -558,7 +657,7 @@ function renderWrongNotes() {
   } catch (e) { records = []; }
 
   if (records.length === 0) {
-    list.innerHTML = '<div style="text-align:center; padding:40px; color:#94A3B8; font-size:13px;">아직 기록된 오답이 없습니다.<br>완벽하게 정답을 맞혀보세요! ✨</div>';
+    list.innerHTML = '<div style="text-align:center; padding:40px; color:#94A3B8; font-size:13px;">아직 기록된 오답이 없습니다. ✨</div>';
     return;
   }
 
@@ -617,6 +716,7 @@ function goToMain() {
   selectedOxChoice = null;
   updateBadges();
   updatePointUI();
+  updateWeeklyBanner();
   switchScreen('screen-main');
 }
 
@@ -795,7 +895,7 @@ function submitBuilderAnswer() {
         renderVocabQuestion();
       } else {
         currentUser.progress.vocab = true;
-        addRewardPoints(15, `${currentUnit}단원 어휘 퍼즐 (10문항) 완성`);
+        addRewardPoints(15, `${currentUnit}단원 어휘 퍼즐 완성`);
         goToMain();
       }
     } else {
@@ -816,12 +916,12 @@ function submitBuilderAnswer() {
         renderGrammarQuestion();
       } else {
         currentUser.progress.grammar = true;
-        addRewardPoints(20, `${currentUnit}단원 핵심 문형 (10문항) 완성`);
+        addRewardPoints(20, `${currentUnit}단원 핵심 문형 완성`);
         goToMain();
       }
     } else {
       saveWrongRecord("문법/회화 영역", q.meaning, assembledTokens.join(' '), q.tokens.join(' '));
-      alert(`❌ 순서가 맞지 않습니다! 조합창의 카드를 눌러 취소하고 다시 배열해보세요.`);
+      alert(`❌ 순서가 맞지 않습니다! 조합창 카드를 눌러 취소하고 다시 배열해보세요.`);
     }
   }
 }
@@ -873,7 +973,7 @@ function submitOxAnswer() {
     renderCultureQuestion();
   } else {
     currentUser.progress.culture = true;
-    addRewardPoints(15, `${currentUnit}단원 문화 유퀴즈 (10문항) 클리어`);
+    addRewardPoints(15, `${currentUnit}단원 문화 유퀴즈 클리어`);
     goToMain();
   }
 }
@@ -1009,11 +1109,12 @@ function finishSoloSpeedrun() {
   }
   
   currentUser.points = (currentUser.points || 0) + 10;
+  currentUser.weeklyPoints = (currentUser.weeklyPoints || 0) + 10;
   syncWithDB();
 
   triggerCelebration();
-  alert(`🎉 5문항 완주 성공!\n기록: ${finalTime}초${isBest ? ' (⭐ 최고기록 경신!)' : ''}\n완주 보너스 +10P 적립! [우리 반 기여도 +10점]`);
-  currentRankTab = speedrunCategory;
+  alert(`🎉 5문항 완주 성공!\n기록: ${finalTime}초${isBest ? ' (⭐ 최고기록 경신!)' : ''}\n완주 보너스 +10P 적립! [우리 반 주간 기여도 +10점]`);
+  currentRankTab = "all";
   showRanking();
 }
 
@@ -1055,7 +1156,6 @@ function createMultiRoom() {
   };
 
   multiRoomRef.set(initialData).then(() => {
-    // 방장 연결 끊김 시 방 자체를 서버에서 자동 삭제 (유령방 방지)
     multiRoomRef.onDisconnect().remove();
     enterLobbyScreen(code);
     listenMultiRoom(code);
@@ -1226,13 +1326,14 @@ function finishMultiSpeedrun() {
   }
 
   currentUser.points = (currentUser.points || 0) + 15;
+  currentUser.weeklyPoints = (currentUser.weeklyPoints || 0) + 15;
   syncWithDB();
 
   triggerCelebration();
-  alert(`🏁 멀티 배틀 완주 완료!\n기록: ${finalTime}초 (+15P 획득)`);
+  alert(`🏁 멀티 배틀 완주 완료!\n기록: ${finalTime}초 (+15P / 주간 반 기여도 +15점)`);
 }
 
-// ---------------- [랭킹 및 학급 대항전] ----------------
+// ---------------- [주간 랭킹 및 학급 대항전] ----------------
 function showRanking() {
   switchScreen('screen-ranking');
   renderRankingList();
@@ -1252,6 +1353,66 @@ function renderRankingList() {
   list.innerHTML = '';
   myRankBox.innerHTML = '';
 
+  const activeWeek = getMondayWeekKey();
+
+  // 1. 주간 학급 대항전
+  if (currentRankTab === 'weekly-class') {
+    const classScores = {};
+    studentList.forEach(s => {
+      const cls = s.className || parseClassName(s.id);
+      if (!cls || cls === '기타 학급' || cls.startsWith('0학년')) return;
+      if (s.currentWeekKey === activeWeek) {
+        classScores[cls] = (classScores[cls] || 0) + (s.weeklyPoints || 0);
+      }
+    });
+
+    const sortedClasses = Object.entries(classScores).sort((a, b) => b[1] - a[1]);
+
+    if (sortedClasses.length === 0) {
+      list.innerHTML = `<div style="text-align:center; padding:30px; color:#94A3B8; font-size:13px;">이번 주 집계된 학급 점수가 아직 없습니다.<br>문제를 풀어 1등 반이 되어보세요! 🔥</div>`;
+      return;
+    }
+
+    sortedClasses.forEach(([clsName, pts], idx) => {
+      const isMyClass = (currentUser.className === clsName);
+      const icon = idx === 0 ? "🥇" : (idx === 1 ? "🥈" : (idx === 2 ? "🥉" : `${idx + 1}위`));
+      const div = document.createElement('div');
+      div.className = `rank-item ${isMyClass ? 'my-rank' : ''}`;
+      div.innerHTML = `
+        <span><strong>${icon}</strong> ${clsName}</span>
+        <span style="color:var(--accent); font-weight:800;">이번 주 ${pts}P</span>
+      `;
+      list.appendChild(div);
+    });
+    return;
+  }
+
+  // 2. 주간 개인 랭킹
+  if (currentRankTab === 'weekly-user') {
+    const validUsers = studentList
+      .filter(s => s.currentWeekKey === activeWeek && typeof s.weeklyPoints === 'number' && s.weeklyPoints > 0)
+      .sort((a, b) => b.weeklyPoints - a.weeklyPoints);
+
+    if (validUsers.length === 0) {
+      list.innerHTML = `<div style="text-align:center; padding:30px; color:#94A3B8; font-size:13px;">이번 주 획득 포인트가 아직 없습니다.<br>오늘 첫 문제를 풀어보세요! 🚀</div>`;
+      return;
+    }
+
+    validUsers.slice(0, 20).forEach((s, idx) => {
+      const isMe = s.id === currentUser.id;
+      const icon = idx === 0 ? "👑" : (idx === 1 ? "🥈" : (idx === 2 ? "🥉" : `${idx + 1}위`));
+      const div = document.createElement('div');
+      div.className = `rank-item ${isMe ? 'my-rank' : ''}`;
+      div.innerHTML = `
+        <span><strong>${icon}</strong> [${s.className || '기타'}] ${s.nick}</span>
+        <span style="font-weight:bold; color:var(--primary);">${s.weeklyPoints}P</span>
+      `;
+      list.appendChild(div);
+    });
+    return;
+  }
+
+  // 3. 누적 학급 대항전
   if (currentRankTab === 'class') {
     const classScores = {};
     studentList.forEach(s => {
@@ -1263,7 +1424,7 @@ function renderRankingList() {
     const sortedClasses = Object.entries(classScores).sort((a, b) => b[1] - a[1]);
 
     if (sortedClasses.length === 0) {
-      list.innerHTML = '<div style="text-align:center; padding:30px; color:#94A3B8; font-size:13px;">아직 집계된 정규 학급 점수가 없습니다.</div>';
+      list.innerHTML = '<div style="text-align:center; padding:30px; color:#94A3B8; font-size:13px;">집계된 누적 학급 점수가 없습니다.</div>';
       return;
     }
 
@@ -1280,12 +1441,13 @@ function renderRankingList() {
     return;
   }
 
+  // 4. 스피드런 랭킹 (통합)
   const validStudents = studentList
-    .filter(s => s.records && typeof s.records[currentRankTab] === 'number')
-    .sort((a, b) => a.records[currentRankTab] - b.records[currentRankTab]);
+    .filter(s => s.records && typeof s.records.all === 'number')
+    .sort((a, b) => a.records.all - b.records.all);
 
   if (validStudents.length === 0) {
-    list.innerHTML = '<div style="text-align:center; padding:30px; color:#94A3B8; font-size:13px;">아직 기록된 랭킹 데이터가 없습니다.</div>';
+    list.innerHTML = '<div style="text-align:center; padding:30px; color:#94A3B8; font-size:13px;">아직 스피드런 완주 기록이 없습니다.</div>';
     return;
   }
 
@@ -1294,8 +1456,8 @@ function renderRankingList() {
     const div = document.createElement('div');
     div.className = `rank-item ${isMe ? 'my-rank' : ''}`;
     div.innerHTML = `
-      <span><strong>${idx + 1}위</strong> [${s.className || '기타'}] ${s.title || ''} ${s.nick}</span>
-      <span style="font-weight:bold; color:var(--primary);">${s.records[currentRankTab]}초</span>
+      <span><strong>${idx + 1}위</strong> [${s.className || '기타'}] ${s.nick}</span>
+      <span style="font-weight:bold; color:var(--primary);">${s.records.all}초</span>
     `;
     list.appendChild(div);
   });
