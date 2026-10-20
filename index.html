@@ -23,8 +23,8 @@
       --border: #E2E8F0;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    body { background-color: var(--bg); color: var(--text); padding: 16px; display: flex; justify-content: center; }
-    .app-container { width: 100%; max-width: 480px; background: var(--card-bg); border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); overflow: hidden; min-height: 92vh; display: flex; flex-direction: column; position: relative; }
+    body { background-color: var(--bg); color: var(--text); padding: 16px; display: flex; justify-content: center; min-height: 100vh; }
+    .app-container { width: 100%; max-width: 480px; background: var(--card-bg); border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); overflow: hidden; min-height: 100dvh; display: flex; flex-direction: column; position: relative; }
     
     /* Top Bar */
     .top-bar { padding: 12px 14px; background: white; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
@@ -172,7 +172,7 @@
       <button class="btn-shop-top" id="btn-shop" style="display:none;" onclick="openShopModal()">🛒 칭호 상점</button>
       <button class="btn-logout" id="btn-logout" style="display:none;" onclick="handleLogout()">변경</button>
     </div>
-    <span class="app-version">v2.4</span>
+    <span class="app-version">v2.5</span>
   </div>
 
   <!-- 1. 로그인 화면 -->
@@ -204,7 +204,7 @@
     <div class="category-card speedrun-card" onclick="openSpeedrunModal()">
       <div class="category-info">
         <h3>🔥 가나 스피드런 (솔로 랭킹전)</h3>
-        <p>5문항 개인 타임어택 (+100P / 반 기여도 +100점)</p>
+        <p>5문항 개인 타임어택 (+10P / 반 기여도 +10점)</p>
       </div>
       <span>⚡</span>
     </div>
@@ -220,7 +220,7 @@
     <div class="category-card" onclick="openUnitSelectMode('vocab')">
       <div class="category-info">
         <h3>🅰️ 문자 / 어휘 영역 <span class="badge-status" id="badge-vocab">미완료</span></h3>
-        <p>교과서 1~4단원 단어 조립 퍼즐 (10문항 / +150P)</p>
+        <p>교과서 1~4단원 단어 조립 퍼즐 (10문항 / +15P)</p>
       </div>
       <span>🧩</span>
     </div>
@@ -228,7 +228,7 @@
     <div class="category-card" onclick="openUnitSelectMode('grammar')">
       <div class="category-info">
         <h3>💬 문법 / 회화 영역 <span class="badge-status" id="badge-grammar">미완료</span></h3>
-        <p>교과서 1~4단원 핵심 문장 어순 배열 (10문항 / +200P)</p>
+        <p>교과서 1~4단원 핵심 문장 어순 배열 (10문항 / +20P)</p>
       </div>
       <span>✍️</span>
     </div>
@@ -236,7 +236,7 @@
     <div class="category-card" onclick="openUnitSelectMode('culture')">
       <div class="category-info">
         <h3>🏮 문화 / 흥미 영역 <span class="badge-status" id="badge-culture">미완료</span></h3>
-        <p>교과서 1~4단원 문화 유퀴즈 (10문항 / +150P)</p>
+        <p>교과서 1~4단원 문화 유퀴즈 (10문항 / +15P)</p>
       </div>
       <span>⭕</span>
     </div>
@@ -464,13 +464,13 @@
   // ---------------- [칭호 상점 마스터 카탈로그] ----------------
   const SHOP_TITLES = [
     { id: "t_chick", name: "🐣 가나 병아리", price: 0, desc: "기본 지급 칭호" },
-    { id: "t_rice", name: "🍙 주먹밥 냠냠", price: 500, desc: "출석 2~3일차 입문" },
-    { id: "t_sushi", name: "🍣 스시 장인", price: 1200, desc: "1주일 성실 학습" },
-    { id: "t_sakura", name: "🌸 사쿠라 마스터", price: 3000, desc: "단원 퍼즐 마스터" },
-    { id: "t_lightning", name: "⚡ 번개 손가락", price: 6000, desc: "스피드런 매니아" },
-    { id: "t_ramen", name: "🍜 라멘 감별사", price: 10000, desc: "중급 열정 학습자" },
-    { id: "t_edo", name: "🏯 에도 성주", price: 20000, desc: "1달 돌파 고급 목표" },
-    { id: "t_champ", name: "👑 가나고 챔피언", price: 40000, desc: "2달 정복 명예의 전당" }
+    { id: "t_rice", name: "🍙 주먹밥 냠냠", price: 50, desc: "출석 2~3일차 입문" },
+    { id: "t_sushi", name: "🍣 스시 장인", price: 120, desc: "1주일 성실 학습" },
+    { id: "t_sakura", name: "🌸 사쿠라 마스터", price: 300, desc: "단원 퍼즐 마스터" },
+    { id: "t_lightning", name: "⚡ 번개 손가락", price: 600, desc: "스피드런 매니아" },
+    { id: "t_ramen", name: "🍜 라멘 감별사", price: 1000, desc: "중급 열정 학습자" },
+    { id: "t_edo", name: "🏯 에도 성주", price: 2000, desc: "1달 돌파 고급 목표" },
+    { id: "t_champ", name: "👑 가나고 챔피언", price: 4000, desc: "2달 정복 명예의 전당" }
   ];
 
   function parseClassName(studentId) {
@@ -552,11 +552,11 @@
   function checkDailyAttendance() {
     const today = getTodayString();
     if (currentUser.lastLoginDate !== today) {
-      currentUser.points = (currentUser.points || 0) + 100;
+      currentUser.points = (currentUser.points || 0) + 10;
       currentUser.lastLoginDate = today;
       syncWithDB();
       setTimeout(() => {
-        alert(`🎉 오늘 첫 로그인! 일일 출석 보너스 +100P가 적립되었습니다.\n(현재 보유: ${currentUser.points}P)`);
+        alert(`🎉 오늘 첫 로그인! 일일 출석 보너스 +10P가 적립되었습니다.\n(현재 보유: ${currentUser.points}P)`);
       }, 500);
     }
   }
@@ -676,7 +676,7 @@
       } else if (isOwned) {
         btnHtml = `<button class="shop-btn btn-equip" onclick="equipTitle('${item.name}')">장착</button>`;
       } else {
-        btnHtml = `<button class="shop-btn btn-buy" onclick="buyTitle('${item.id}', ${item.price}, '${item.name}')">${item.price}P 구매</button>`;
+        btnHtml = `<button class="shop-btn btn-buy" onclick="buyTitle('${item.id}',${item.price}, '${item.name}')">${item.price}P 구매</button>`;
       }
 
       div.innerHTML = `
@@ -774,7 +774,7 @@
   }
 
   function adminGrantPoint(studentId, studentName) {
-    const input = prompt(`[${studentName}] 학생에게 지급/차감할 포인트를 입력하세요 (예: 500 또는 -200):`, "500");
+    const input = prompt(`[${studentName}] 학생에게 지급/차감할 포인트를 입력하세요 (예: 50 또는 -20):`, "50");
     const delta = parseInt(input, 10);
     if (!isNaN(delta)) {
       db.ref(`students/${studentId}/points`).transaction((current) => (current || 0) + delta);
@@ -797,11 +797,15 @@
 
   function speakJapanese(text) {
     if (!('speechSynthesis' in window)) return;
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'ja-JP';
-    utterance.rate = 0.9;
-    window.speechSynthesis.speak(utterance);
+    try {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'ja-JP';
+      utterance.rate = 0.9;
+      window.speechSynthesis.speak(utterance);
+    } catch (e) {
+      console.warn("TTS 음성 재생 지원 안 됨 또는 제한됨", e);
+    }
   }
 
   function shuffleArray(arr) {
@@ -874,7 +878,7 @@
     }
   }
 
-  // ---------------- [데이터: 교과서 1~4단원 데이터 (단원별 10개 이상)] ----------------
+  // ---------------- [데이터: 교과서 1~4단원 데이터 (오타 및 토큰 수정 완료)] ----------------
   const VOCAB_BY_UNIT = {
     1: [
       { word: "あさ", meaning: "아침 (1단원)", audio: "あさ" },
@@ -958,14 +962,14 @@
     ],
     3: [
       { meaning: "식당 주문: 우동으로 하겠습니다", tokens: ["うどん", "に", "します"], dummy: ["を", "が", "で"], audio: "うどんにします" },
-      { meaning: "식사 전 예절 인사: 잘 먹겠습니다", tokens: ["いただきます"], dummy: ["ごちそうさま", "どうぞ"], audio: "いただきます" },
+      { meaning: "식사 전 예절 인사: 잘 먹겠습니다", tokens: ["いただきます"], dummy: ["ごちそうさま", "いらっしゃい"], audio: "いただきます" },
       { meaning: "식사 후 예절 인사: 잘 먹었습니다", tokens: ["ごちそう", "さま", "でした"], dummy: ["ありがとう", "おいしい"], audio: "ごちそうさまでした" },
       { meaning: "시간 표현: 수업은 9시부터입니다", tokens: ["じゅぎょう", "は", "9じ", "から", "です"], dummy: ["まで", "と"], audio: "じゅぎょうはくじからです" },
       { meaning: "비교 표현: 메밀국수가 더 맛있습니다", tokens: ["そば", "の", "ほう", "が", "おいしい", "です"], dummy: ["より", "も"], audio: "そばのほうがおいしいです" },
       { meaning: "메뉴 추천 묻기: 추천 메뉴는 무엇입니까?", tokens: ["おすすめ", "は", "なん", "ですか"], dummy: ["どこ", "だれ"], audio: "おすすめはなんですか" },
       { meaning: "수량 주문: 라면 하나 주세요", tokens: ["ラーメン", "ひとつ", "ください"], dummy: ["ふたつ", "を"], audio: "ラーメンひとつください" },
       { meaning: "물 요청: 물 부탁드립니다", tokens: ["おみず", "おねがい", "します"], dummy: ["どうぞ", "から"], audio: "おみずおねがいします" },
-      { meaning: "음식 맛 평가: 조금 맵습니다", tokens: ["ちょっと", "からい", "です"], dummy: ["あまい", "とても"], audio: "ちょっとからいです" },
+      { meaning: "음식 맛 평가: 조금 맵습니다", tokens: ["すこし", "からい", "です"], dummy: ["あまい", "とても"], audio: "すこしからいです" },
       { meaning: "식사 권유: 함께 먹지 않겠습니까?", tokens: ["いっしょに", "たべませんか"], dummy: ["たべます", "いきます"], audio: "いっしょにたべませんか" }
     ],
     4: [
@@ -973,10 +977,10 @@
       { meaning: "가격 묻기: 이 컵은 얼마입니까?", tokens: ["この", "コップ", "は", "いくら", "ですか"], dummy: ["いくつ", "どこ"], audio: "このコップはいくらですか" },
       { meaning: "물건 주문: 이것 두 개 주세요", tokens: ["これ", "ふたつ", "ください"], dummy: ["ひとつ", "みっつ"], audio: "これふたつください" },
       { meaning: "선택/추천 묻기: 어느 것이 맛있습니까?", tokens: ["どれ", "が", "おいしい", "ですか"], dummy: ["どの", "なに"], audio: "どれがおいしいですか" },
-      { meaning: "감탄/칭찬: 정말 예쁩니다", tokens: ["とても", "きれい", "です"], dummy: ["あまり", "ちょっと"], audio: "とてもきれいです" },
+      { meaning: "감탄/칭찬: 정말 예쁩니다", tokens: ["ほんとうに", "きれいです"], dummy: ["あまり", "すこし"], audio: "ほんとうにきれいです" },
       { meaning: "원하는 것 표현: 새 공책을 갖고 싶습니다", tokens: ["あたらしい", "ノート", "が", "ほしい", "です"], dummy: ["すき", "を"], audio: "あたらしいノートがほしいです" },
       { meaning: "수량 표현: 사과를 세 개 샀습니다", tokens: ["りんご", "を", "みっつ", "かいました"], dummy: ["ふたつ", "が"], audio: "りんごをみっつかいました" },
-      { meaning: "권유 응답: 네, 그렇게 합시다", tokens: ["ええ", "そう", "しましょう"], dummy: ["いいえ", "どうぞ"], audio: "ええそうしましょう" },
+      { meaning: "권유 응답: 네, 그렇게 합시다", tokens: ["はい", "そう", "しましょう"], dummy: ["いいえ", "どうぞ"], audio: "はいそうしましょう" },
       { meaning: "상태 설명: 이 방은 조용합니다", tokens: ["この", "へや", "は", "しずか", "です"], dummy: ["きれい", "に"], audio: "このへやはしずかです" },
       { meaning: "가격 평가: 매우 쌉니다", tokens: ["とても", "やすい", "です"], dummy: ["たかい", "あまり"], audio: "とてもやすいです" }
     ]
@@ -1092,7 +1096,7 @@
   let timerInterval = null;
   let startTime = 0;
   let isAnswerLock = false;
-  let selectedOxChoice = null; // 문화 OX 퀴즈 선택 임시 저장
+  let selectedOxChoice = null;
 
   // ---------------- [실시간 멀티 배틀 룸 상태 관리] ----------------
   let currentRoomId = null;
@@ -1206,7 +1210,6 @@
 
     renderAssembledBox();
 
-    // 중복 글자 버그 완전 방지
     const baseKanaPool = ["あ", "い", "う", "え", "お", "か", "き", "く", "す", "た", "ん", "て", "ま", "り", "と", "ら", "み"];
     const wordChars = q.word.split('');
     const pureExtra = baseKanaPool.filter(c => !wordChars.includes(c));
@@ -1274,7 +1277,6 @@
     });
   }
 
-  // 어휘 / 문법 퍼즐 제출 버튼 채점 함수
   function submitBuilderAnswer() {
     const q = currentList[currentIdx];
     if (assembledTokens.length === 0) {
@@ -1292,7 +1294,7 @@
           renderVocabQuestion();
         } else {
           currentUser.progress.vocab = true;
-          addRewardPoints(150, `${currentUnit}단원 어휘 퍼즐 (10문항) 완성`);
+          addRewardPoints(15, `${currentUnit}단원 어휘 퍼즐 (10문항) 완성`);
           goToMain();
         }
       } else {
@@ -1300,23 +1302,23 @@
         alert(`❌ 아쉽습니다! 다시 맞춰보세요.\n(작성한 내용: ${myWord})`);
       }
     } else if (currentMode === 'grammar') {
-      const mySentence = assembledTokens.join(' ');
-      const targetSentence = q.tokens.join(' ');
-      const isCorrect = (mySentence === targetSentence) || (assembledTokens.join('') === q.tokens.join(''));
+      const mySentence = assembledTokens.join('');
+      const targetSentence = q.tokens.join('');
+      const isCorrect = (mySentence === targetSentence);
 
       if (isCorrect) {
         playCurrentAudio();
-        alert(`정답입니다! 👏\n[ ${targetSentence} ]`);
+        alert(`정답입니다! 👏\n[ ${q.tokens.join(' ')} ]`);
         currentIdx++;
         if (currentIdx < currentList.length) {
           renderGrammarQuestion();
         } else {
           currentUser.progress.grammar = true;
-          addRewardPoints(200, `${currentUnit}단원 핵심 문형 (10문항) 완성`);
+          addRewardPoints(20, `${currentUnit}단원 핵심 문형 (10문항) 완성`);
           goToMain();
         }
       } else {
-        saveWrongRecord("문법/회화 영역", q.meaning, mySentence, targetSentence);
+        saveWrongRecord("문법/회화 영역", q.meaning, assembledTokens.join(' '), q.tokens.join(' '));
         alert(`❌ 순서가 맞지 않습니다! 조합창의 카드를 눌러 취소하고 다시 배열해보세요.`);
       }
     }
@@ -1349,7 +1351,6 @@
     });
   }
 
-  // 문화 OX 퀴즈 제출 버튼 채점 함수
   function submitOxAnswer() {
     if (!selectedOxChoice) {
       alert("O 또는 X 중 하나를 먼저 선택해주세요!");
@@ -1359,29 +1360,22 @@
     const q = currentList[currentIdx];
     if (selectedOxChoice === q.ans) {
       alert(`⭕ 정답입니다!\n\n💡 교과서 해설:\n${q.tip}`);
-      currentIdx++;
-      if (currentIdx < currentList.length) {
-        renderCultureQuestion();
-      } else {
-        currentUser.progress.culture = true;
-        addRewardPoints(150, `${currentUnit}단원 문화 유퀴즈 (10문항) 클리어`);
-        goToMain();
-      }
     } else {
       saveWrongRecord("문화 유퀴즈", q.q, selectedOxChoice, q.ans);
       alert(`❌ 틀렸습니다!\n\n💡 교과서 해설:\n${q.tip}`);
-      currentIdx++;
-      if (currentIdx < currentList.length) {
-        renderCultureQuestion();
-      } else {
-        currentUser.progress.culture = true;
-        addRewardPoints(150, `${currentUnit}단원 문화 유퀴즈 (10문항) 클리어`);
-        goToMain();
-      }
+    }
+    
+    currentIdx++;
+    if (currentIdx < currentList.length) {
+      renderCultureQuestion();
+    } else {
+      currentUser.progress.culture = true;
+      addRewardPoints(15, `${currentUnit}단원 문화 유퀴즈 (10문항) 클리어`);
+      goToMain();
     }
   }
 
-  /* ---------------- [솔로 스피드런 모드 (즉시 터치 레이스)] ---------------- */
+  /* ---------------- [솔로 스피드런 모드] ---------------- */
   function openSpeedrunModal() {
     document.getElementById('speedrun-modal').style.display = 'flex';
   }
@@ -1470,10 +1464,20 @@
 
           setTimeout(() => {
             currentIdx++;
+            if (currentMode === 'multi' && multiRoomRef) {
+              multiRoomRef.child('players/' + currentUser.id).update({
+                progress: currentIdx
+              });
+            }
+
             if (currentIdx < currentList.length) {
               renderSpeedrunQuestion();
             } else {
-              finishSoloSpeedrun();
+              if (currentMode === 'multi') {
+                finishMultiSpeedrun();
+              } else {
+                finishSoloSpeedrun();
+              }
             }
           }, 450);
         } else {
@@ -1501,10 +1505,10 @@
       isBest = true;
     }
     
-    currentUser.points = (currentUser.points || 0) + 100;
+    currentUser.points = (currentUser.points || 0) + 10;
     syncWithDB();
 
-    alert(`🎉 5문항 완주 성공!\n기록: ${finalTime}초${isBest ? ' (⭐ 최고기록 경신!)' : ''}\n완주 보너스 +100P 적립! [우리 반 기여도 +100점]`);
+    alert(`🎉 5문항 완주 성공!\n기록: ${finalTime}초${isBest ? ' (⭐ 최고기록 경신!)' : ''}\n완주 보너스 +10P 적립! [우리 반 기여도 +10점]`);
     currentRankTab = speedrunCategory;
     showRanking();
   }
@@ -1547,6 +1551,7 @@
     };
 
     multiRoomRef.set(initialData).then(() => {
+      multiRoomRef.child('players/' + currentUser.id).onDisconnect().remove();
       enterLobbyScreen(code);
       listenMultiRoom(code);
     });
@@ -1588,6 +1593,7 @@
         finishTime: null,
         rank: 0
       }).then(() => {
+        multiRoomRef.child('players/' + currentUser.id).onDisconnect().remove();
         enterLobbyScreen(code);
         listenMultiRoom(code);
       });
@@ -1638,40 +1644,39 @@
       const isMe = p.id === currentUser.id;
       div.className = `participant-item ${isMe ? 'is-me' : ''}`;
       div.innerHTML = `
-        <span><span style="font-size:11px; color:var(--primary);">[${p.title}]</span> ${p.nick} ${isMe ? '(나)' : ''}</span>
-        <span style="font-size:11px; color:#10B981; font-weight:bold;">준비 완료 ✔</span>
+        <span><span style="font-size:11px; color:var(--text-muted);">${p.title || ''}</span> <strong>${p.nick}</strong></span>
+        <span>${p.finishTime ? '🏁 ' + p.finishTime + 's' : (p.progress ? p.progress + '/5' : '대기 중')}</span>
       `;
       list.appendChild(div);
     });
   }
 
-  function hostStartMultiGame() {
-    if (!isRoomHost || !multiRoomRef) return;
-    multiRoomRef.child('status').set('playing');
+  function leaveMultiRoom() {
+    if (multiRoomRef && currentRoomId && currentUser.id) {
+      multiRoomRef.child('players/' + currentUser.id).remove();
+      multiRoomRef.off();
+      multiRoomRef = null;
+      currentRoomId = null;
+      isRoomHost = false;
+    }
   }
 
-  function leaveMultiRoom() {
-    if (multiRoomRef && currentRoomId) {
-      multiRoomRef.off();
-      if (isRoomHost) {
-        multiRoomRef.remove();
-      } else {
-        multiRoomRef.child('players/' + currentUser.id).remove();
-      }
-    }
-    currentRoomId = null;
-    isRoomHost = false;
-    multiRoomRef = null;
+  function hostStartMultiGame() {
+    if (!isRoomHost || !multiRoomRef) return;
+    multiRoomRef.update({
+      status: 'playing',
+      startedAt: Date.now()
+    });
   }
 
   function startMultiGameClient(questions) {
-    currentMode = "multi";
+    currentMode = 'multi';
     currentList = questions;
     currentIdx = 0;
     isAnswerLock = false;
 
     document.getElementById('unit-tabs').style.display = 'none';
-    document.getElementById('quiz-title').innerText = `⚔️ 8인 실시간 레이스 (방 #${currentRoomId})`;
+    document.getElementById('quiz-title').innerText = "⚔️ 실시간 멀티 배틀";
     document.getElementById('builder-container').style.display = 'none';
     document.getElementById('ox-container').style.display = 'none';
     document.getElementById('options-box-5').style.display = 'flex';
@@ -1679,132 +1684,55 @@
     document.getElementById('multi-race-box').style.display = 'block';
 
     switchScreen('screen-game');
-
     startTime = Date.now();
-    timerInterval = setInterval(() => {
-      const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-      document.getElementById('quiz-progress').innerText = `⏱ ${elapsed}s`;
-    }, 100);
-
-    renderMultiQuestion();
+    renderSpeedrunQuestion();
   }
 
   function renderMultiRaceTracks(players) {
     const trackBox = document.getElementById('multi-race-track-list');
     trackBox.innerHTML = '';
-    
     Object.values(players).forEach(p => {
       const isMe = p.id === currentUser.id;
-      const pct = Math.min(100, (p.progress / 5) * 100);
+      const pct = ((p.progress || 0) / 5) * 100;
       const row = document.createElement('div');
       row.className = 'multi-track-row';
       row.innerHTML = `
-        <span class="multi-track-name">${isMe ? '👉 ' : ''}${p.nick}</span>
+        <span class="multi-track-name">${p.nick}</span>
         <div class="multi-track-bar-bg">
           <div class="multi-track-bar-fill ${isMe ? 'me' : ''}" style="width: ${pct}%;"></div>
         </div>
-        <span style="font-weight:bold; width:35px; text-align:right;">${p.finishTime ? p.rank + '위' : p.progress + '/5'}</span>
+        <span style="width: 38px; text-align: right;">${p.finishTime ? p.finishTime + 's' : (p.progress || 0) + '/5'}</span>
       `;
       trackBox.appendChild(row);
     });
   }
 
-  function renderMultiQuestion() {
-    isAnswerLock = false;
-    const q = currentList[currentIdx];
-    currentAudioText = q.kana;
-    playCurrentAudio();
-
-    document.getElementById('quiz-main-content').className = "kana-main";
-    document.getElementById('quiz-main-content').innerText = q.kana;
-    document.getElementById('quiz-sub-content').innerText = "정확한 한국어 발음을 빠르게 선택하세요!";
-    
-    const reviewBubble = document.getElementById('review-bubble');
-    reviewBubble.style.display = 'none';
-
-    const optBox = document.getElementById('options-box-5');
-    optBox.innerHTML = '';
-    
-    shuffleArray(q.options).slice(0, 5).forEach(opt => {
-      const btn = document.createElement('button');
-      btn.className = 'btn-option-5';
-      btn.innerText = opt;
-      btn.onclick = () => {
-        if (isAnswerLock || btn.disabled) return;
-
-        if (opt === q.ans) {
-          isAnswerLock = true;
-          btn.classList.add('btn-correct');
-
-          currentIdx++;
-          if (multiRoomRef && currentRoomId) {
-            multiRoomRef.child('players/' + currentUser.id + '/progress').set(currentIdx);
-          }
-
-          setTimeout(() => {
-            if (currentIdx < currentList.length) {
-              renderMultiQuestion();
-            } else {
-              finishMultiGame();
-            }
-          }, 350);
-        } else {
-          btn.classList.add('btn-wrong');
-          btn.disabled = true;
-          saveWrongRecord("실시간 배틀", `글자 [ ${q.kana} ]의 발음`, opt, q.ans);
-        }
-      };
-      optBox.appendChild(btn);
-    });
-  }
-
-  function finishMultiGame() {
-    clearInterval(timerInterval);
-    timerInterval = null;
-    const myTime = parseFloat(((Date.now() - startTime) / 1000).toFixed(1));
-
-    if (multiRoomRef && currentRoomId) {
-      multiRoomRef.child('players').once('value', snapshot => {
-        const players = snapshot.val() || {};
-        let finishedCount = 0;
-        Object.values(players).forEach(p => {
-          if (p.finishTime) finishedCount++;
-        });
-        const myRank = finishedCount + 1;
-
-        multiRoomRef.child('players/' + currentUser.id).update({
-          finishTime: myTime,
-          rank: myRank
-        });
-
-        let reward = 50;
-        if (myRank === 1) reward = 300;
-        else if (myRank === 2) reward = 200;
-        else if (myRank === 3) reward = 150;
-
-        currentUser.points = (currentUser.points || 0) + reward;
-        syncWithDB();
-
-        setTimeout(() => {
-          alert(`🏁 [경기 종료!]\n내 기록: ${myTime}초\n최종 순위: 🏆 ${myRank}위!\n보상: +${reward}P가 적립되었습니다.`);
-          leaveMultiRoom();
-          goToMain();
-        }, 800);
+  function finishMultiSpeedrun() {
+    const finalTime = parseFloat(((Date.now() - startTime) / 1000).toFixed(1));
+    if (multiRoomRef && currentUser.id) {
+      multiRoomRef.child('players/' + currentUser.id).update({
+        progress: 5,
+        finishTime: finalTime
       });
     }
+
+    currentUser.points = (currentUser.points || 0) + 15;
+    syncWithDB();
+
+    alert(`🏁 멀티 배틀 완주 완료!\n기록: ${finalTime}초 (+15P 획득)`);
   }
 
-  /* ---------------- [랭킹 및 학급 대항전 화면] ---------------- */
+  // ---------------- [랭킹 및 학급 대항전 화면] ----------------
   function showRanking() {
     switchScreen('screen-ranking');
-    switchRankingTab(currentRankTab || 'all');
+    renderRankingList();
   }
 
   function switchRankingTab(tabKey) {
     currentRankTab = tabKey;
-    ['all', 'hira', 'kata', 'class'].forEach(key => {
-      document.getElementById(`tab-rank-${key}`).classList.toggle('active', key === tabKey);
-    });
+    document.querySelectorAll('.rank-tab-btn').forEach(btn => btn.classList.remove('active'));
+    const target = document.getElementById(`tab-rank-${tabKey}`);
+    if (target) target.classList.add('active');
     renderRankingList();
   }
 
@@ -1818,101 +1746,42 @@
       const classScores = {};
       studentList.forEach(s => {
         const cls = s.className || parseClassName(s.id);
-        if (!classScores[cls]) classScores[cls] = { count: 0, score: 0 };
-        const rec = s.records || {};
-        let completions = 0;
-        if (typeof rec.all === 'number') completions++;
-        if (typeof rec.hira === 'number') completions++;
-        if (typeof rec.kata === 'number') completions++;
-        classScores[cls].count += completions;
-        classScores[cls].score += (completions * 100);
+        classScores[cls] = (classScores[cls] || 0) + (s.points || 0);
       });
 
-      const sortedClasses = Object.keys(classScores)
-        .map(cls => ({ className: cls, score: classScores[cls].score, count: classScores[cls].count }))
-        .sort((a, b) => b.score - a.score);
-
-      if (sortedClasses.length === 0) {
-        list.innerHTML = '<div style="text-align:center; padding:30px; color:#94A3B8; font-size:13px;">아직 학급 기여도 점수가 없습니다.</div>';
-        return;
-      }
-
-      sortedClasses.forEach((item, index) => {
+      const sortedClasses = Object.entries(classScores).sort((a, b) => b[1] - a[1]);
+      sortedClasses.forEach(([clsName, pts], idx) => {
+        const isMyClass = currentUser.className === clsName;
         const div = document.createElement('div');
-        const isMyClass = currentUser && currentUser.className === item.className;
         div.className = `rank-item ${isMyClass ? 'my-rank' : ''}`;
-        
-        let medal = `${index + 1}`;
-        if (index === 0) medal = '🥇';
-        if (index === 1) medal = '🥈';
-        if (index === 2) medal = '🥉';
-
         div.innerHTML = `
-          <span style="font-weight:800; width:26px;">${medal}</span>
-          <span style="flex-grow:1; margin-left:10px;">${item.className} ${isMyClass ? '<strong>(우리반)</strong>' : ''}</span>
-          <span style="font-weight:800; color:var(--primary);">${item.score.toLocaleString()}점 (${item.count}회)</span>
+          <span><strong>${idx + 1}위</strong> ${clsName}</span>
+          <span style="color:var(--accent); font-weight:800;">총 ${pts}P</span>
         `;
         list.appendChild(div);
       });
       return;
     }
 
-    const validList = studentList
-      .filter(s => s && s.records && typeof s.records[currentRankTab] === 'number' && !isNaN(s.records[currentRankTab]))
-      .map(s => ({
-        nick: s.nick,
-        title: s.title || "🐣 가나 병아리",
-        time: s.records[currentRankTab]
-      }))
-      .sort((a, b) => a.time - b.time);
+    const validStudents = studentList
+      .filter(s => s.records && typeof s.records[currentRankTab] === 'number')
+      .sort((a, b) => a.records[currentRankTab] - b.records[currentRankTab]);
 
-    if (validList.length === 0) {
-      list.innerHTML = '<div style="text-align:center; padding:30px; color:#94A3B8; font-size:14px;">해당 모드의 완주 기록이 아직 없습니다.<br>첫 번째 랭커에 도전해보세요! 🔥</div>';
+    if (validStudents.length === 0) {
+      list.innerHTML = '<div style="text-align:center; padding:30px; color:#94A3B8; font-size:13px;">아직 기록된 랭킹 데이터가 없습니다.</div>';
       return;
     }
 
-    const myIndex = validList.findIndex(item => currentUser && currentUser.nick === item.nick);
-    const amIInTop20 = myIndex >= 0 && myIndex < 20;
-
-    const top20 = validList.slice(0, 20);
-    top20.forEach((item, index) => {
+    validStudents.slice(0, 15).forEach((s, idx) => {
+      const isMe = s.id === currentUser.id;
       const div = document.createElement('div');
-      const isMe = currentUser && currentUser.nick === item.nick;
       div.className = `rank-item ${isMe ? 'my-rank' : ''}`;
-      
-      let badge = `${index + 1}`;
-      if (index === 0) badge = '🥇';
-      if (index === 1) badge = '🥈';
-      if (index === 2) badge = '🥉';
-
       div.innerHTML = `
-        <span style="font-weight:800; width:22px;">${badge}</span>
-        <span style="flex-grow:1; margin-left:6px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
-          <span style="font-size:11px; color:var(--primary); font-weight:bold;">[${item.title}]</span> ${item.nick} ${isMe ? '(나)' : ''}
-        </span>
-        <span style="font-weight:700;">${item.time}s</span>
+        <span><strong>${idx + 1}위</strong> [${s.className || '기타'}] ${s.title || ''} ${s.nick}</span>
+        <span style="font-weight:bold; color:var(--primary);">${s.records[currentRankTab]}초</span>
       `;
       list.appendChild(div);
     });
-
-    if (!amIInTop20) {
-      const fixedCard = document.createElement('div');
-      fixedCard.className = 'my-rank-fixed';
-
-      if (myIndex >= 20) {
-        fixedCard.innerHTML = `
-          <span>📍 내 순위: ${myIndex + 1}위</span>
-          <span>[${currentUser.title}] ${currentUser.nick} (나)</span>
-          <span style="color:var(--primary);">${currentUser.records[currentRankTab]}초</span>
-        `;
-      } else {
-        fixedCard.style.color = '#64748B';
-        fixedCard.style.fontSize = '12px';
-        fixedCard.style.justifyContent = 'center';
-        fixedCard.innerText = '아직 이 모드의 기록이 없습니다. 도전해보세요! 🔥';
-      }
-      myRankBox.appendChild(fixedCard);
-    }
   }
 </script>
 </body>
