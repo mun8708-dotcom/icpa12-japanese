@@ -72,7 +72,9 @@ let currentUser = {
   points: 0,
   weeklyPoints: 0,
   currentWeekKey: getMondayWeekKey(),
-  lastLoginDate: ""
+  lastLoginDate: "",
+  speedrunDate: "",
+  speedrunDailyCount: 0
 };
 
 // 실시간 DB 데이터 반영 리스너
@@ -99,6 +101,8 @@ db.ref('students').on('value', (snapshot) => {
         if (myData.title) currentUser.title = myData.title;
         if (myData.ownedTitles) currentUser.ownedTitles = myData.ownedTitles;
         if (myData.className) currentUser.className = myData.className;
+        if (myData.speedrunDate) currentUser.speedrunDate = myData.speedrunDate;
+        if (myData.speedrunDailyCount) currentUser.speedrunDailyCount = myData.speedrunDailyCount;
         
         localStorage.setItem('ganago_user', JSON.stringify(currentUser));
         updateBadges();
@@ -111,6 +115,8 @@ db.ref('students').on('value', (snapshot) => {
         currentUser.records = { all: null, hira: null, kata: null };
         currentUser.title = "🐣 가나 병아리";
         currentUser.ownedTitles = ["t_chick"];
+        currentUser.speedrunDate = "";
+        currentUser.speedrunDailyCount = 0;
         localStorage.setItem('ganago_user', JSON.stringify(currentUser));
         updateBadges();
         updatePointUI();
@@ -126,6 +132,8 @@ db.ref('students').on('value', (snapshot) => {
       currentUser.records = { all: null, hira: null, kata: null };
       currentUser.title = "🐣 가나 병아리";
       currentUser.ownedTitles = ["t_chick"];
+      currentUser.speedrunDate = "";
+      currentUser.speedrunDailyCount = 0;
       localStorage.setItem('ganago_user', JSON.stringify(currentUser));
       updateBadges();
       updatePointUI();
@@ -150,7 +158,7 @@ function syncWithDB() {
     currentUser.currentWeekKey = activeWeek;
   }
 
-  db.ref('students/' + currentUser.id).set({
+  db.ref('students/' + currentUser.id).update({
     id: currentUser.id,
     name: currentUser.name,
     nick: currentUser.nick,
@@ -163,6 +171,8 @@ function syncWithDB() {
     weeklyPoints: currentUser.weeklyPoints || 0,
     currentWeekKey: currentUser.currentWeekKey,
     lastLoginDate: currentUser.lastLoginDate || "",
+    speedrunDate: currentUser.speedrunDate || "",
+    speedrunDailyCount: currentUser.speedrunDailyCount || 0,
     updatedAt: Date.now()
   });
   localStorage.setItem('ganago_user', JSON.stringify(currentUser));
@@ -174,33 +184,76 @@ function getTodayString() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+// 출석 체크 (트랜잭션)
 function checkDailyAttendance() {
+  if (!currentUser.id) return;
   const today = getTodayString();
-  if (currentUser.lastLoginDate !== today) {
-    currentUser.points = (currentUser.points || 0) + 10;
-    currentUser.weeklyPoints = (currentUser.weeklyPoints || 0) + 10;
-    currentUser.lastLoginDate = today;
-    syncWithDB();
-    setTimeout(() => {
-      triggerCelebration();
-      alert(`🎉 오늘 첫 로그인! 출석 보너스 +10P (주간 기여도 +10점)\n(현재 보유: ${currentUser.points}P)`);
-    }, 500);
-  }
+  const activeWeek = getMondayWeekKey();
+
+  db.ref('students/' + currentUser.id).transaction((userData) => {
+    if (!userData) return userData;
+    if (userData.lastLoginDate !== today) {
+      userData.points = (userData.points || 0) + 10;
+      if (userData.currentWeekKey === activeWeek) {
+        userData.weeklyPoints = (userData.weeklyPoints || 0) + 10;
+      } else {
+        userData.weeklyPoints = 10;
+        userData.currentWeekKey = activeWeek;
+      }
+      userData.lastLoginDate = today;
+      userData.updatedAt = Date.now();
+    }
+    return userData;
+  }, (error, committed, snapshot) => {
+    if (committed && snapshot && snapshot.exists()) {
+      const data = snapshot.val();
+      if (currentUser.lastLoginDate !== today && data.lastLoginDate === today) {
+        currentUser.points = data.points;
+        currentUser.weeklyPoints = data.weeklyPoints;
+        currentUser.lastLoginDate = today;
+        localStorage.setItem('ganago_user', JSON.stringify(currentUser));
+        updatePointUI();
+        updateWeeklyBanner();
+        setTimeout(() => {
+          triggerCelebration();
+          alert(`🎉 오늘 첫 로그인! 출석 보너스 +10P (주간 기여도 +10점)\n(현재 보유: ${currentUser.points}P)`);
+        }, 500);
+      }
+    }
+  });
 }
 
+// 포인트 보상 트랜잭션
 function addRewardPoints(amount, reason) {
+  if (!currentUser.id) return;
   const activeWeek = getMondayWeekKey();
-  if (currentUser.currentWeekKey !== activeWeek) {
-    currentUser.weeklyPoints = 0;
-    currentUser.currentWeekKey = activeWeek;
-  }
 
-  currentUser.points = (currentUser.points || 0) + amount;
-  currentUser.weeklyPoints = (currentUser.weeklyPoints || 0) + amount;
-  syncWithDB();
-  updatePointUI();
-  triggerCelebration();
-  alert(`⭐ ${reason} 달성!\n+${amount}P 획득 (우리 반 주간 점수 +${amount}점)`);
+  db.ref('students/' + currentUser.id).transaction((userData) => {
+    if (!userData) return userData;
+    userData.points = (userData.points || 0) + amount;
+    if (userData.currentWeekKey === activeWeek) {
+      userData.weeklyPoints = (userData.weeklyPoints || 0) + amount;
+    } else {
+      userData.weeklyPoints = amount;
+      userData.currentWeekKey = activeWeek;
+    }
+    userData.progress = currentUser.progress;
+    userData.updatedAt = Date.now();
+    return userData;
+  }, (error, committed, snapshot) => {
+    if (committed && snapshot && snapshot.exists()) {
+      const data = snapshot.val();
+      currentUser.points = data.points;
+      currentUser.weeklyPoints = data.weeklyPoints;
+      localStorage.setItem('ganago_user', JSON.stringify(currentUser));
+      updatePointUI();
+      updateWeeklyBanner();
+      triggerCelebration();
+      alert(`⭐ ${reason} 달성!\n+${amount}P 획득 (우리 반 주간 점수 +${amount}점)`);
+    } else if (error) {
+      console.error("포인트 지급 실패:", error);
+    }
+  });
 }
 
 window.addEventListener('DOMContentLoaded', () => {
@@ -279,7 +332,12 @@ function handleLogin() {
     return;
   }
 
-  if (!nick) nick = name;
+  // 닉네임 정제: 최대 8자
+  if (!nick) {
+    nick = name;
+  } else if (nick.length > 8) {
+    nick = nick.substring(0, 8);
+  }
 
   const activeWeek = getMondayWeekKey();
 
@@ -304,6 +362,8 @@ function handleLogin() {
       currentUser.weeklyPoints = (existing.currentWeekKey === activeWeek && typeof existing.weeklyPoints === 'number') ? existing.weeklyPoints : 0;
       currentUser.currentWeekKey = activeWeek;
       currentUser.lastLoginDate = existing.lastLoginDate || "";
+      currentUser.speedrunDate = existing.speedrunDate || "";
+      currentUser.speedrunDailyCount = existing.speedrunDailyCount || 0;
 
       applyUserUI();
       checkDailyAttendance();
@@ -322,6 +382,8 @@ function handleLogin() {
       currentUser.weeklyPoints = 0;
       currentUser.currentWeekKey = activeWeek;
       currentUser.lastLoginDate = "";
+      currentUser.speedrunDate = "";
+      currentUser.speedrunDailyCount = 0;
 
       applyUserUI();
       checkDailyAttendance();
@@ -342,7 +404,8 @@ function handleLogout() {
       title: "🐣 가나 병아리", ownedTitles: ["t_chick"],
       progress: { vocab: false, grammar: false, culture: false },
       records: { all: null, hira: null, kata: null },
-      points: 0, weeklyPoints: 0, currentWeekKey: getMondayWeekKey(), lastLoginDate: ""
+      points: 0, weeklyPoints: 0, currentWeekKey: getMondayWeekKey(), lastLoginDate: "",
+      speedrunDate: "", speedrunDailyCount: 0
     };
     applyUserUI();
     document.getElementById('input-student-id').value = '';
@@ -395,20 +458,38 @@ function renderShopItems() {
 }
 
 function buyTitle(titleId, price, titleName) {
+  if (!currentUser.id) return;
   if ((currentUser.points || 0) < price) {
     alert("포인트가 부족합니다! 퀴즈와 스피드런을 클리어해 포인트를 모아보세요.");
     return;
   }
   if (confirm(`[${titleName}] 칭호를 ${price}P에 구매하시겠습니까?`)) {
-    currentUser.points -= price;
-    if (!currentUser.ownedTitles) currentUser.ownedTitles = ["t_chick"];
-    currentUser.ownedTitles.push(titleId);
-    currentUser.title = titleName;
-    syncWithDB();
-    applyUserUI();
-    openShopModal();
-    triggerCelebration();
-    alert(`🎉 [${titleName}] 칭호를 구매하고 즉시 장착했습니다!`);
+    db.ref('students/' + currentUser.id).transaction((userData) => {
+      if (!userData) return userData;
+      if ((userData.points || 0) < price) return;
+      userData.points = (userData.points || 0) - price;
+      if (!userData.ownedTitles) userData.ownedTitles = ["t_chick"];
+      if (!userData.ownedTitles.includes(titleId)) {
+        userData.ownedTitles.push(titleId);
+      }
+      userData.title = titleName;
+      userData.updatedAt = Date.now();
+      return userData;
+    }, (error, committed, snapshot) => {
+      if (committed && snapshot && snapshot.exists()) {
+        const data = snapshot.val();
+        currentUser.points = data.points;
+        currentUser.ownedTitles = data.ownedTitles;
+        currentUser.title = data.title;
+        localStorage.setItem('ganago_user', JSON.stringify(currentUser));
+        applyUserUI();
+        openShopModal();
+        triggerCelebration();
+        alert(`🎉 [${titleName}] 칭호를 구매하고 즉시 장착했습니다!`);
+      } else {
+        alert("구매 실패: 포인트가 부족하거나 통신 문제가 발생했습니다.");
+      }
+    });
   }
 }
 
@@ -506,7 +587,7 @@ function adminGrantPoint(studentId, studentName) {
   }
 }
 
-// 개별 학생 초기화 (칭호 포함 리셋)
+// 개별 학생 초기화
 function resetSingleStudent(studentId, studentName) {
   if (confirm(`⚠️ [${studentName}] 학생의 진도, 포인트, 주간 점수, 보유 칭호를 초기화하시겠습니까?`)) {
     const resetData = {
@@ -517,6 +598,8 @@ function resetSingleStudent(studentId, studentName) {
       currentWeekKey: getMondayWeekKey(),
       title: "🐣 가나 병아리",
       ownedTitles: ["t_chick"],
+      speedrunDate: "",
+      speedrunDailyCount: 0,
       updatedAt: Date.now()
     };
 
@@ -551,15 +634,15 @@ function resetSpeedrunRanking() {
   }
 }
 
-// 전체 학생 일괄 초기화 (칭호 포함 리셋)
+// 전체 학생 일괄 초기화
 async function resetAllStudentData() {
-  const input = prompt("⚠️ 모든 학생의 진도, 누적 포인트, 주간 점수, 칭호를 일괄 초기화합니다.\n(학번/이름 명단은 유지)\n\n진행하려면 관리자 비밀번호 또는 '초기화'를 입력하세요:");
+  const input = prompt("⚠️ 모든 학생의 진도, 누적 포인트, 주간 점수, 칭호를 일괄 초기화합니다.\n(학번/이름 명단은 유지)\n\n진행하려면 관리자 비밀번호를 입력하세요:");
   if (!input) return;
 
   const trimmedInput = input.trim();
   const inputHash = await sha256(trimmedInput);
   
-  if (inputHash === SECURE_TEACHER_HASH || trimmedInput === '초기화') {
+  if (inputHash === SECURE_TEACHER_HASH) {
     if (studentList.length === 0) {
       alert("초기화할 등록 학생 데이터가 없습니다.");
       return;
@@ -575,6 +658,8 @@ async function resetAllStudentData() {
       updates[`students/${student.id}/currentWeekKey`] = activeWeek;
       updates[`students/${student.id}/title`] = "🐣 가나 병아리";
       updates[`students/${student.id}/ownedTitles`] = ["t_chick"];
+      updates[`students/${student.id}/speedrunDate`] = "";
+      updates[`students/${student.id}/speedrunDailyCount`] = 0;
       updates[`students/${student.id}/updatedAt`] = Date.now();
     });
 
@@ -587,6 +672,8 @@ async function resetAllStudentData() {
         currentUser.currentWeekKey = activeWeek;
         currentUser.title = "🐣 가나 병아리";
         currentUser.ownedTitles = ["t_chick"];
+        currentUser.speedrunDate = "";
+        currentUser.speedrunDailyCount = 0;
         localStorage.setItem('ganago_user', JSON.stringify(currentUser));
         applyUserUI();
         updateBadges();
@@ -601,6 +688,7 @@ async function resetAllStudentData() {
   }
 }
 
+// iOS Safari / 모바일 호환 TTS
 function speakJapanese(text) {
   if (!('speechSynthesis' in window)) return;
   try {
@@ -608,9 +696,14 @@ function speakJapanese(text) {
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = 'ja-JP';
     utterance.rate = 0.9;
+    
+    const voices = window.speechSynthesis.getVoices();
+    const jaVoice = voices.find(v => v.lang.startsWith('ja'));
+    if (jaVoice) utterance.voice = jaVoice;
+
     window.speechSynthesis.speak(utterance);
   } catch (e) {
-    console.warn("TTS 미지원", e);
+    console.warn("TTS 실행 에러:", e);
   }
 }
 
@@ -978,7 +1071,7 @@ function submitOxAnswer() {
   }
 }
 
-/* ---------------- [솔로 스피드런 (10문제 / 발음 음성 제거)] ---------------- */
+/* ---------------- [솔로 스피드런 (10문제 / 독립 랜덤)] ---------------- */
 function openSpeedrunModal() {
   document.getElementById('speedrun-modal').style.display = 'flex';
 }
@@ -1003,13 +1096,13 @@ function startSoloSpeedrun() {
   let modeTitle = "";
   if (speedrunCategory === 'hira') {
     basePool = SPEEDRUN_HIRA;
-    modeTitle = "🇯🇵 히라가나 스피드런 (10문항)";
+    modeTitle = "🇯🇵 히라가나 (10문항)";
   } else if (speedrunCategory === 'kata') {
     basePool = SPEEDRUN_KATA;
-    modeTitle = "🔤 가타카나 스피드런 (10문항)";
+    modeTitle = "🔤 가타카나 (10문항)";
   } else {
     basePool = [...SPEEDRUN_HIRA, ...SPEEDRUN_KATA];
-    modeTitle = "🔥 통합 가나 스피드런 (10문항)";
+    modeTitle = "🔥 통합 가나 (10문항)";
   }
 
   currentList = shuffleArray(basePool).slice(0, 10);
@@ -1053,7 +1146,7 @@ function renderSpeedrunQuestion() {
   const optBox = document.getElementById('options-box-5');
   optBox.innerHTML = '';
   
-  // 전체 발음 목록 풀에서 정답 제외 4개 무작위 추출하여 5지선다 생성
+  // 전체 발음 풀에서 정답 제외 4개 무작위 추출하여 5지선다 생성
   const allPronunciations = [
     "아","이","우","에","오","카","키","쿠","케","코",
     "사","시","스","세","소","타","치","츠","테","토",
@@ -1063,7 +1156,7 @@ function renderSpeedrunQuestion() {
     "자","지","즈","제","조","다","데","도","바","비",
     "부","베","보","파","피","푸","페","포"
   ];
-  
+
   const wrongOptions = shuffleArray(allPronunciations.filter(p => p !== q.ans)).slice(0, 4);
   const finalOptions = shuffleArray([q.ans, ...wrongOptions]);
 
@@ -1124,17 +1217,34 @@ function finishSoloSpeedrun() {
     isBest = true;
   }
   
-  currentUser.points = (currentUser.points || 0) + 10;
-  currentUser.weeklyPoints = (currentUser.weeklyPoints || 0) + 10;
-  syncWithDB();
+  db.ref('students/' + currentUser.id + '/records').set(currentUser.records);
 
-  triggerCelebration();
-  alert(`🎉 10문항 완주 성공!\n기록: ${finalTime}초${isBest ? ' (⭐ 최고기록 경신!)' : ''}\n완주 보너스 +10P 적립! [우리 반 주간 기여도 +10점]`);
+  // [치팅 방지] 스피드런 하루 포인트 지급 상한선 (하루 최대 5회)
+  const today = getTodayString();
+  if (currentUser.speedrunDate !== today) {
+    currentUser.speedrunDate = today;
+    currentUser.speedrunDailyCount = 0;
+  }
+
+  if ((currentUser.speedrunDailyCount || 0) < 5) {
+    currentUser.speedrunDailyCount = (currentUser.speedrunDailyCount || 0) + 1;
+    db.ref('students/' + currentUser.id).update({
+      speedrunDate: today,
+      speedrunDailyCount: currentUser.speedrunDailyCount
+    });
+    addRewardPoints(10, `스피드런 완주 (${currentUser.speedrunDailyCount}/5회)`);
+    triggerCelebration();
+    alert(`🎉 10문항 완주 성공!\n기록: ${finalTime}초${isBest ? ' (⭐ 최고기록 경신!)' : ''}\n완주 보너스 +10P 적립! (오늘 획득: ${currentUser.speedrunDailyCount}/5회)`);
+  } else {
+    triggerCelebration();
+    alert(`🎉 10문항 완주 성공!\n기록: ${finalTime}초${isBest ? ' (⭐ 최고기록 경신!)' : ''}\n(오늘 스피드런 포인트 획득 한도 5회를 달성하여 기록만 갱신됩니다! 🚀)`);
+  }
+
   currentRankTab = "all";
   showRanking();
 }
 
-/* ---------------- [실시간 멀티 배틀 (방장 시작 멈춤 해결)] ---------------- */
+/* ---------------- [실시간 멀티 배틀] ---------------- */
 function openMultiLobbyModal() {
   if (!currentUser.id) {
     alert("로그인 후 멀티 배틀을 이용하실 수 있습니다!");
@@ -1212,7 +1322,7 @@ function joinMultiRoom() {
       return;
     }
     if (room.status !== 'waiting') {
-      alert("이미 게임이 진행 중인 방입니다!");
+      alert("이미 게임이 진행 중이거나 종료된 방입니다!");
       return;
     }
     const pCount = room.players ? Object.keys(room.players).length : 0;
@@ -1253,9 +1363,9 @@ function enterLobbyScreen(code) {
 function listenMultiRoom(code) {
   multiRoomRef.on('value', snapshot => {
     const room = snapshot.val();
-    if (!room) {
+    if (!room || room.status === 'closed') {
       if (currentRoomId) {
-        alert("방이 종료되었거나 나갔습니다.");
+        alert("방장이 퇴장했거나 방이 종료되었습니다.");
         leaveMultiRoom();
         goToMain();
       }
@@ -1298,7 +1408,9 @@ function renderLobbyParticipants(players) {
 function leaveMultiRoom() {
   if (multiRoomRef && currentRoomId && currentUser.id) {
     if (isRoomHost) {
-      multiRoomRef.remove();
+      multiRoomRef.update({ status: 'closed' }).then(() => {
+        multiRoomRef.remove();
+      });
     } else {
       multiRoomRef.child('players/' + currentUser.id).remove();
     }
@@ -1368,10 +1480,7 @@ function finishMultiSpeedrun() {
     });
   }
 
-  currentUser.points = (currentUser.points || 0) + 15;
-  currentUser.weeklyPoints = (currentUser.weeklyPoints || 0) + 15;
-  syncWithDB();
-
+  addRewardPoints(15, `멀티 배틀 완주 (${finalTime}초)`);
   triggerCelebration();
   alert(`🏁 멀티 배틀 10문항 완주 완료!\n기록: ${finalTime}초 (+15P / 주간 반 기여도 +15점)`);
 }
