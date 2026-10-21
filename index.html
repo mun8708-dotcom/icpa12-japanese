@@ -74,7 +74,7 @@
     <div class="category-card speedrun-card" onclick="openSpeedrunModal()">
       <div class="category-info">
         <h3>🔥 가나 스피드런 (솔로 랭킹)</h3>
-        <p>5문항 개인 타임어택 (+10P / 주간 반 기여도 +10점)</p>
+        <p>10문항 개인 타임어택 (+10P / 주간 반 기여도 +10점)</p>
       </div>
       <span style="font-size: 22px;">⚡</span>
     </div>
@@ -82,7 +82,7 @@
     <div class="category-card pvp-card" onclick="openMultiLobbyModal()">
       <div class="category-info">
         <h3>⚔️ 실시간 멀티 배틀 (최대 8인)</h3>
-        <p>방 코드로 모여 동일한 5문제를 두고 펼치는 레이스</p>
+        <p>방 코드로 모여 동일한 10문제를 두고 펼치는 레이스</p>
       </div>
       <span style="font-size: 22px;">👥</span>
     </div>
@@ -117,6 +117,14 @@
         <p>내가 헷갈려했던 글자와 문항 복습하기</p>
       </div>
       <span style="font-size: 20px;">🔍</span>
+    </div>
+
+    <div class="category-card" onclick="openActivityLog()" style="border-color:#CBD5E1; border-bottom-color:#94A3B8;">
+      <div class="category-info">
+        <h3 style="color: #475569;">📅 내 학습 기록</h3>
+        <p>최근 나의 로그인 및 퀴즈 완료 타임라인 보기</p>
+      </div>
+      <span style="font-size: 20px;">📜</span>
     </div>
 
     <button class="btn-3d btn-accent" style="margin-top: auto;" onclick="showRanking()">🏆 주간 랭킹 & 명예의 전당</button>
@@ -257,6 +265,17 @@
     </table>
   </div>
 
+  <!-- 11. 내 학습 기록 화면 -->
+  <div class="screen" id="screen-activity-log">
+    <div class="quiz-header">
+      <button class="btn-nav-back" onclick="goToMain()">← 뒤로</button>
+      <h2 style="font-size: 17px; font-weight:800;">📅 내 학습 기록</h2>
+      <span></span>
+    </div>
+    <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">최근 50개의 학습 및 활동 내역입니다.</p>
+    <div class="wrong-list" id="activity-log-list"></div>
+  </div>
+
   <!-- 8. 칭호 상점 모달 -->
   <div class="modal-overlay" id="shop-modal" style="display: none;">
     <div class="modal-box">
@@ -294,7 +313,7 @@
     <div class="modal-box">
       <div class="modal-title">⚔️ 실시간 멀티 배틀 (최대 8인)</div>
       <p style="font-size:12px; color:var(--text-muted); text-align:center; margin-bottom:14px;">
-        친구들과 동시에 방에 접속해 똑같은 5문제를 두고 경쟁합니다!
+        친구들과 동시에 방에 접속해 똑같은 10문제를 두고 경쟁합니다!
       </p>
       
       <button class="btn-3d btn-danger-3d" style="margin-bottom:14px;" onclick="createMultiRoom()">
