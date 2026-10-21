@@ -789,6 +789,7 @@ let timerInterval = null;
 let startTime = 0;
 let isAnswerLock = false;
 let selectedOxChoice = null;
+let questionShowTime = 0;
 
 let currentRoomId = null;
 let isRoomHost = false;
@@ -848,16 +849,17 @@ function openUnitSelectMode(mode) {
   }
   currentMode = mode;
   selectedOxChoice = null;
-  document.getElementById('audio-btn').style.display = 'flex';
   document.getElementById('multi-race-box').style.display = 'none';
   document.getElementById('unit-tabs').style.display = 'grid';
   document.getElementById('review-bubble').style.display = 'none';
   
   if (mode === 'culture') {
+    document.getElementById('audio-btn').style.display = 'none';
     document.getElementById('builder-container').style.display = 'none';
     document.getElementById('options-box-5').style.display = 'none';
     document.getElementById('ox-container').style.display = 'block';
   } else {
+    document.getElementById('audio-btn').style.display = 'flex';
     document.getElementById('builder-container').style.display = 'block';
     document.getElementById('options-box-5').style.display = 'none';
     document.getElementById('ox-container').style.display = 'none';
@@ -1134,6 +1136,7 @@ function renderSpeedrunQuestion() {
   if (!q) return;
 
   currentAudioText = "";
+  questionShowTime = Date.now(); // 문항 표시 시각 기록 (오토마우스 속도 체크용)
 
   document.getElementById('quiz-progress').innerText = `${currentIdx + 1} / ${currentList.length}`;
   document.getElementById('quiz-main-content').className = "kana-main";
@@ -1164,8 +1167,20 @@ function renderSpeedrunQuestion() {
     const btn = document.createElement('button');
     btn.className = 'btn-option-5';
     btn.innerText = opt;
-    btn.onclick = () => {
+    btn.onclick = (e) => {
+      // 1. 브라우저 스크립트 클릭 조작 차단 (isTrusted 검증)
+      if (e && e.isTrusted === false) {
+        alert("⚠️ 비정상적인 입력이 감지되었습니다.");
+        return;
+      }
+
       if (isAnswerLock || btn.disabled) return;
+
+      // 2. 인간 최소 반응 속도 한계 검증 (0.12초 미만 초고속 클릭 차단)
+      const reactionTime = Date.now() - questionShowTime;
+      if (reactionTime < 120) {
+        return; // 오토마우스 초고속 연타 무시
+      }
 
       if (opt === q.ans) {
         isAnswerLock = true;
@@ -1193,9 +1208,17 @@ function renderSpeedrunQuestion() {
           }
         }, 400);
       } else {
+        // 3. [오토마우스 방어 핵심] 오답 시 0.6초간 전체 버튼 잠금 (무차별 연타 무력화)
         btn.classList.add('btn-wrong');
         btn.disabled = true;
         saveWrongRecord("가나 스피드런", `글자 [ ${q.kana} ]의 발음`, opt, q.ans);
+
+        isAnswerLock = true;
+        document.querySelectorAll('.btn-option-5').forEach(b => b.style.pointerEvents = 'none');
+        setTimeout(() => {
+          isAnswerLock = false;
+          document.querySelectorAll('.btn-option-5').forEach(b => b.style.pointerEvents = 'auto');
+        }, 600);
       }
     };
     optBox.appendChild(btn);
@@ -1208,6 +1231,13 @@ function finishSoloSpeedrun() {
 
   const finalTime = parseFloat(((Date.now() - startTime) / 1000).toFixed(1));
   
+  // 4. [오토마우스 방어] 10문항을 3.0초 미만으로 완주하는 비정상 매크로 기록 무효 처리
+  if (finalTime < 3.0) {
+    alert("⚠️ 비정상적인 완주 속도가 감지되었습니다. (기록이 반영되지 않습니다.)");
+    goToMain();
+    return;
+  }
+
   if (!currentUser.records) currentUser.records = { all: null, hira: null, kata: null };
   const prevBest = currentUser.records[speedrunCategory];
   let isBest = false;
