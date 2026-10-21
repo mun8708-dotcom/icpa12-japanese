@@ -110,7 +110,7 @@ body {
   border-radius: 20px;
 }
 
-/* 카테고리 카드 */
+/* 카테고리 카드 기본 */
 .category-card { 
   background: white; 
   border: 2px solid var(--border); 
@@ -129,6 +129,18 @@ body {
 .category-info p { font-size: 12px; color: var(--text-muted); }
 .badge-status { font-size: 10px; padding: 2px 6px; border-radius: 10px; background: #E2E8F0; color: #64748B; font-weight: 700; }
 .badge-status.done { background: #D1FAE5; color: #047857; }
+
+/* 🌟 추가: 스피드런 및 멀티 배틀 특별 색상 강조 */
+.category-card.speedrun-card {
+  background: linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%);
+  border-color: #FDE68A;
+  border-bottom-color: #F59E0B;
+}
+.category-card.pvp-card {
+  background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%);
+  border-color: #BFDBFE;
+  border-bottom-color: #3B82F6;
+}
 
 /* 퀴즈/게임 레이아웃 */
 .quiz-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
