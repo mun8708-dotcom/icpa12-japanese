@@ -89,7 +89,6 @@ db.ref('students').on('value', (snapshot) => {
         currentUser.records = myData.records || { all: null, hira: null, kata: null };
         currentUser.points = typeof myData.points === 'number' ? myData.points : 0;
         
-        // 월요일 리셋 검증
         if (myData.currentWeekKey === activeWeek) {
           currentUser.weeklyPoints = typeof myData.weeklyPoints === 'number' ? myData.weeklyPoints : 0;
         } else {
@@ -263,7 +262,6 @@ function updatePointUI() {
   document.getElementById('user-points').innerText = `💰 ${currentUser.points || 0}P`;
 }
 
-// 옵션 A: 학번 숫자 정제 및 실명 1회 귀속 잠금
 function handleLogin() {
   const rawId = document.getElementById('input-student-id').value.trim();
   const name = document.getElementById('input-student-name').value.trim();
@@ -508,7 +506,6 @@ function adminGrantPoint(studentId, studentName) {
   }
 }
 
-// 개별 학생 초기화 (칭호 포함 리셋)
 function resetSingleStudent(studentId, studentName) {
   if (confirm(`⚠️ [${studentName}] 학생의 진도, 포인트, 주간 점수, 보유 칭호를 초기화하시겠습니까?`)) {
     const resetData = {
@@ -553,7 +550,6 @@ function resetSpeedrunRanking() {
   }
 }
 
-// 전체 학생 일괄 초기화 (칭호 포함 리셋)
 async function resetAllStudentData() {
   const input = prompt("⚠️ 모든 학생의 진도, 누적 포인트, 주간 점수, 칭호를 일괄 초기화합니다.\n(학번/이름 명단은 유지)\n\n진행하려면 관리자 비밀번호 또는 '초기화'를 입력하세요:");
   if (!input) return;
@@ -617,6 +613,7 @@ function speakJapanese(text) {
 }
 
 function shuffleArray(arr) {
+  if (!arr || !Array.isArray(arr)) return [];
   const result = [...arr];
   for (let i = result.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -978,7 +975,7 @@ function submitOxAnswer() {
   }
 }
 
-/* ---------------- [솔로 스피드런] ---------------- */
+/* ---------------- [솔로 스피드런 (방어 로직 보강)] ---------------- */
 function openSpeedrunModal() {
   document.getElementById('speedrun-modal').style.display = 'flex';
 }
@@ -1037,6 +1034,8 @@ function startSoloSpeedrun() {
 function renderSpeedrunQuestion() {
   isAnswerLock = false;
   const q = currentList[currentIdx];
+  if (!q) return;
+
   currentAudioText = q.kana;
   playCurrentAudio();
 
@@ -1051,7 +1050,10 @@ function renderSpeedrunQuestion() {
   const optBox = document.getElementById('options-box-5');
   optBox.innerHTML = '';
   
-  shuffleArray(q.options).slice(0, 5).forEach(opt => {
+  // 보기 배열 누락 방지 안전장치
+  const optList = (q.options && Array.isArray(q.options)) ? q.options : [q.ans, "아", "이", "우", "에"];
+
+  shuffleArray(optList).slice(0, 5).forEach(opt => {
     const btn = document.createElement('button');
     btn.className = 'btn-option-5';
     btn.innerText = opt;
@@ -1067,7 +1069,7 @@ function renderSpeedrunQuestion() {
 
         setTimeout(() => {
           currentIdx++;
-          if (currentMode === 'multi' && multiRoomRef) {
+          if (currentMode === 'multi' && multiRoomRef && currentUser.id) {
             multiRoomRef.child('players/' + currentUser.id).update({
               progress: currentIdx
             });
@@ -1118,8 +1120,12 @@ function finishSoloSpeedrun() {
   showRanking();
 }
 
-/* ---------------- [실시간 멀티 배틀] ---------------- */
+/* ---------------- [실시간 멀티 배틀 (방 생성 방어 강화)] ---------------- */
 function openMultiLobbyModal() {
+  if (!currentUser.id) {
+    alert("로그인 후 멀티 배틀을 이용하실 수 있습니다!");
+    return;
+  }
   document.getElementById('input-room-code').value = '';
   document.getElementById('multi-lobby-modal').style.display = 'flex';
 }
@@ -1129,6 +1135,11 @@ function closeMultiLobbyModal() {
 }
 
 function createMultiRoom() {
+  if (!currentUser.id) {
+    alert("로그인 후 방을 만들어주세요!");
+    return;
+  }
+
   closeMultiLobbyModal();
   const code = String(Math.floor(1000 + Math.random() * 9000));
   currentRoomId = code;
@@ -1148,8 +1159,8 @@ function createMultiRoom() {
   };
   initialData.players[currentUser.id] = {
     id: currentUser.id,
-    nick: currentUser.nick,
-    title: currentUser.title,
+    nick: currentUser.nick || currentUser.name,
+    title: currentUser.title || "🐣 가나 병아리",
     progress: 0,
     finishTime: null,
     rank: 0
@@ -1159,10 +1170,17 @@ function createMultiRoom() {
     multiRoomRef.onDisconnect().remove();
     enterLobbyScreen(code);
     listenMultiRoom(code);
+  }).catch(err => {
+    alert("방 생성 실패 (Firebase 통신 오류): " + err.message);
   });
 }
 
 function joinMultiRoom() {
+  if (!currentUser.id) {
+    alert("로그인 후 참여해주세요!");
+    return;
+  }
+
   const code = document.getElementById('input-room-code').value.trim();
   if (!code || code.length < 4) {
     alert("4자리 방 코드를 정확히 입력해주세요!");
@@ -1192,8 +1210,8 @@ function joinMultiRoom() {
 
     multiRoomRef.child('players/' + currentUser.id).set({
       id: currentUser.id,
-      nick: currentUser.nick,
-      title: currentUser.title,
+      nick: currentUser.nick || currentUser.name,
+      title: currentUser.title || "🐣 가나 병아리",
       progress: 0,
       finishTime: null,
       rank: 0
@@ -1201,6 +1219,8 @@ function joinMultiRoom() {
       multiRoomRef.child('players/' + currentUser.id).onDisconnect().remove();
       enterLobbyScreen(code);
       listenMultiRoom(code);
+    }).catch(err => {
+      alert("방 입장 실패: " + err.message);
     });
   });
 }
