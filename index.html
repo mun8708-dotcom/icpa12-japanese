@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>가나고 GO! - 고교 일본어 학습 플랫폼</title>
   
   <!-- Firebase SDK 라이브러리 -->
@@ -25,7 +25,7 @@
       <button class="btn-shop-top" id="btn-shop" onclick="openShopModal()">🛒 칭호 상점</button>
       <button class="btn-logout" id="btn-logout" onclick="handleLogout()">변경</button>
     </div>
-    <span class="app-version" onclick="handleSecretTeacherTap()" title="교사용 관리자 진입 (연속 5번 터치)">v2.8 🎌</span>
+    <span class="app-version" onclick="handleSecretTeacherTap()" title="교사용 관리자 진입 (연속 5번 터치)">v2.7 🎌</span>
   </div>
 
   <!-- 1. 로그인 화면 -->
@@ -45,8 +45,8 @@
       <input type="text" id="input-student-name" placeholder="선생님 확인용 실명 입력">
     </div>
     <div class="input-group">
-      <label>공개 닉네임 (친구 랭킹용 / 최대 8자)</label>
-      <input type="text" id="input-student-nick" maxlength="8" placeholder="예: 라멘왕 (최대 8자)">
+      <label>공개 닉네임 (친구 랭킹용)</label>
+      <input type="text" id="input-student-nick" placeholder="예: 도톤보리폭격기, 라멘왕">
     </div>
 
     <button class="btn-3d btn-main" onclick="handleLogin()">🚀 학습 시작하기</button>
@@ -74,7 +74,7 @@
     <div class="category-card speedrun-card" onclick="openSpeedrunModal()">
       <div class="category-info">
         <h3>🔥 가나 스피드런 (솔로 랭킹)</h3>
-        <p>10문항 개인 타임어택 (일일 최대 5회 +10P / 랭킹 기록)</p>
+        <p>5문항 개인 타임어택 (+10P / 주간 반 기여도 +10점)</p>
       </div>
       <span style="font-size: 22px;">⚡</span>
     </div>
@@ -82,7 +82,7 @@
     <div class="category-card pvp-card" onclick="openMultiLobbyModal()">
       <div class="category-info">
         <h3>⚔️ 실시간 멀티 배틀 (최대 8인)</h3>
-        <p>방 코드로 모여 동일한 10문제를 두고 펼치는 레이스</p>
+        <p>방 코드로 모여 동일한 5문제를 두고 펼치는 레이스</p>
       </div>
       <span style="font-size: 22px;">👥</span>
     </div>
@@ -143,7 +143,7 @@
 
     <div id="host-controls" style="margin-top: auto; display: none;">
       <p style="font-size: 12px; color: var(--text-muted); text-align: center; margin-bottom: 8px;">방장만 게임을 시작할 수 있습니다. (2명 이상 권장)</p>
-      <button class="btn-3d btn-danger-3d" onclick="hostStartMultiGame()">🔥 8인 동시 10문항 레이스 시작!</button>
+      <button class="btn-3d btn-danger-3d" onclick="hostStartMultiGame()">🔥 8인 동시 레이스 시작!</button>
     </div>
     <div id="guest-controls" style="margin-top: auto; display: none;">
       <p style="font-size: 13px; color: #DC2626; font-weight: bold; text-align: center; padding: 12px 0;">방장이 게임을 시작하기를 기다리고 있습니다...</p>
@@ -159,7 +159,7 @@
     </div>
 
     <div class="multi-race-container" id="multi-race-box" style="display: none;">
-      <div style="font-size: 11px; font-weight: bold; color: #991B1B; margin-bottom: 6px;">🏁 실시간 8인 라이브 레이스 (총 10문항)</div>
+      <div style="font-size: 11px; font-weight: bold; color: #991B1B; margin-bottom: 6px;">🏁 실시간 8인 라이브 레이스</div>
       <div id="multi-race-track-list"></div>
     </div>
 
@@ -272,17 +272,17 @@
   <!-- 9. 스피드런 솔로 모드 선택 모달 -->
   <div class="modal-overlay" id="speedrun-modal">
     <div class="modal-box">
-      <div class="modal-title">⚡ 스피드런 모드 선택 (10문항)</div>
+      <div class="modal-title">⚡ 스피드런 모드 선택</div>
       <button class="mode-select-btn" onclick="startSelectedSpeedrun('all')">
-        <span>🔥 통합 가나 (10문항)</span>
+        <span>🔥 통합 가나 (전체 믹스)</span>
         <span>👉</span>
       </button>
       <button class="mode-select-btn" onclick="startSelectedSpeedrun('hira')">
-        <span>🇯🇵 히라가나 (10문항)</span>
+        <span>🇯🇵 히라가나 헷갈리는 문자</span>
         <span>👉</span>
       </button>
       <button class="mode-select-btn" onclick="startSelectedSpeedrun('kata')">
-        <span>🔤 가타카나 (10문항)</span>
+        <span>🔤 가타카나 (모양 구분 & 필수 문자)</span>
         <span>👉</span>
       </button>
       <button class="btn-3d btn-back" onclick="closeSpeedrunModal()">닫기</button>
@@ -292,9 +292,9 @@
   <!-- 10. 실시간 멀티 배틀 로비 모달 -->
   <div class="modal-overlay" id="multi-lobby-modal">
     <div class="modal-box">
-      <div class="modal-title">⚔️ 실시간 멀티 배틀 (최대 8인 / 10문항)</div>
+      <div class="modal-title">⚔️ 실시간 멀티 배틀 (최대 8인)</div>
       <p style="font-size:12px; color:var(--text-muted); text-align:center; margin-bottom:14px;">
-        친구들과 동시에 방에 접속해 똑같은 10문제를 두고 경쟁합니다!
+        친구들과 동시에 방에 접속해 똑같은 5문제를 두고 경쟁합니다!
       </p>
       
       <button class="btn-3d btn-danger-3d" style="margin-bottom:14px;" onclick="createMultiRoom()">
