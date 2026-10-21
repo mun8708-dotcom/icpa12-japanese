@@ -293,6 +293,7 @@ function handleLogin() {
       currentUser.weeklyPoints = 0;
       currentUser.currentWeekKey = activeWeek;
       currentUser.lastLoginDate = "";
+      currentUser.dailyPlays = { date: "", speedrun: 0, multi: 0 };
     }
     
     // 신규 생성 시 기본 필드 세팅
