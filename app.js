@@ -1053,9 +1053,21 @@ function renderSpeedrunQuestion() {
   const optBox = document.getElementById('options-box-5');
   optBox.innerHTML = '';
   
-  const optList = (q.options && Array.isArray(q.options)) ? q.options : [q.ans, "아", "이", "우", "에"];
+  // 전체 발음 목록 풀에서 정답 제외 4개 무작위 추출하여 5지선다 생성
+  const allPronunciations = [
+    "아","이","우","에","오","카","키","쿠","케","코",
+    "사","시","스","세","소","타","치","츠","테","토",
+    "나","니","누","네","노","하","히","후","헤","호",
+    "마","미","무","메","모","야","유","요","라","리",
+    "루","레","로","와","응","가","기","구","게","고",
+    "자","지","즈","제","조","다","데","도","바","비",
+    "부","베","보","파","피","푸","페","포"
+  ];
+  
+  const wrongOptions = shuffleArray(allPronunciations.filter(p => p !== q.ans)).slice(0, 4);
+  const finalOptions = shuffleArray([q.ans, ...wrongOptions]);
 
-  shuffleArray(optList).slice(0, 5).forEach(opt => {
+  finalOptions.forEach(opt => {
     const btn = document.createElement('button');
     btn.className = 'btn-option-5';
     btn.innerText = opt;
