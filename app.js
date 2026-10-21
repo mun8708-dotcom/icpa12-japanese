@@ -506,6 +506,7 @@ function adminGrantPoint(studentId, studentName) {
   }
 }
 
+// 개별 학생 초기화 (칭호 포함 리셋)
 function resetSingleStudent(studentId, studentName) {
   if (confirm(`⚠️ [${studentName}] 학생의 진도, 포인트, 주간 점수, 보유 칭호를 초기화하시겠습니까?`)) {
     const resetData = {
@@ -550,6 +551,7 @@ function resetSpeedrunRanking() {
   }
 }
 
+// 전체 학생 일괄 초기화 (칭호 포함 리셋)
 async function resetAllStudentData() {
   const input = prompt("⚠️ 모든 학생의 진도, 누적 포인트, 주간 점수, 칭호를 일괄 초기화합니다.\n(학번/이름 명단은 유지)\n\n진행하려면 관리자 비밀번호 또는 '초기화'를 입력하세요:");
   if (!input) return;
@@ -753,6 +755,7 @@ function openUnitSelectMode(mode) {
   }
   currentMode = mode;
   selectedOxChoice = null;
+  document.getElementById('audio-btn').style.display = 'flex';
   document.getElementById('multi-race-box').style.display = 'none';
   document.getElementById('unit-tabs').style.display = 'grid';
   document.getElementById('review-bubble').style.display = 'none';
@@ -975,7 +978,7 @@ function submitOxAnswer() {
   }
 }
 
-/* ---------------- [솔로 스피드런 (방어 로직 보강)] ---------------- */
+/* ---------------- [솔로 스피드런 (10문제 / 발음 음성 제거)] ---------------- */
 function openSpeedrunModal() {
   document.getElementById('speedrun-modal').style.display = 'flex';
 }
@@ -1000,16 +1003,16 @@ function startSoloSpeedrun() {
   let modeTitle = "";
   if (speedrunCategory === 'hira') {
     basePool = SPEEDRUN_HIRA;
-    modeTitle = "🇯🇵 히라가나 스피드런";
+    modeTitle = "🇯🇵 히라가나 스피드런 (10문항)";
   } else if (speedrunCategory === 'kata') {
     basePool = SPEEDRUN_KATA;
-    modeTitle = "🔤 가타카나 스피드런";
+    modeTitle = "🔤 가타카나 스피드런 (10문항)";
   } else {
     basePool = [...SPEEDRUN_HIRA, ...SPEEDRUN_KATA];
-    modeTitle = "🔥 통합 가나 스피드런";
+    modeTitle = "🔥 통합 가나 스피드런 (10문항)";
   }
 
-  currentList = shuffleArray(basePool).slice(0, 5);
+  currentList = shuffleArray(basePool).slice(0, 10);
   currentIdx = 0;
   
   document.getElementById('unit-tabs').style.display = 'none';
@@ -1019,6 +1022,7 @@ function startSoloSpeedrun() {
   document.getElementById('options-box-5').style.display = 'flex';
   document.getElementById('review-bubble').style.display = 'none';
   document.getElementById('multi-race-box').style.display = 'none';
+  document.getElementById('audio-btn').style.display = 'none';
 
   switchScreen('screen-game');
   
@@ -1036,13 +1040,12 @@ function renderSpeedrunQuestion() {
   const q = currentList[currentIdx];
   if (!q) return;
 
-  currentAudioText = q.kana;
-  playCurrentAudio();
+  currentAudioText = "";
 
   document.getElementById('quiz-progress').innerText = `${currentIdx + 1} / ${currentList.length}`;
   document.getElementById('quiz-main-content').className = "kana-main";
   document.getElementById('quiz-main-content').innerText = q.kana;
-  document.getElementById('quiz-sub-content').innerText = "정확한 한국어 발음을 선택하세요 (틀려도 다시 선택 가능)";
+  document.getElementById('quiz-sub-content').innerText = "글자를 보고 정확한 한국어 발음을 고르세요";
   
   const reviewBubble = document.getElementById('review-bubble');
   reviewBubble.style.display = 'none';
@@ -1050,7 +1053,6 @@ function renderSpeedrunQuestion() {
   const optBox = document.getElementById('options-box-5');
   optBox.innerHTML = '';
   
-  // 보기 배열 누락 방지 안전장치
   const optList = (q.options && Array.isArray(q.options)) ? q.options : [q.ans, "아", "이", "우", "에"];
 
   shuffleArray(optList).slice(0, 5).forEach(opt => {
@@ -1084,7 +1086,7 @@ function renderSpeedrunQuestion() {
               finishSoloSpeedrun();
             }
           }
-        }, 450);
+        }, 400);
       } else {
         btn.classList.add('btn-wrong');
         btn.disabled = true;
@@ -1115,12 +1117,12 @@ function finishSoloSpeedrun() {
   syncWithDB();
 
   triggerCelebration();
-  alert(`🎉 5문항 완주 성공!\n기록: ${finalTime}초${isBest ? ' (⭐ 최고기록 경신!)' : ''}\n완주 보너스 +10P 적립! [우리 반 주간 기여도 +10점]`);
+  alert(`🎉 10문항 완주 성공!\n기록: ${finalTime}초${isBest ? ' (⭐ 최고기록 경신!)' : ''}\n완주 보너스 +10P 적립! [우리 반 주간 기여도 +10점]`);
   currentRankTab = "all";
   showRanking();
 }
 
-/* ---------------- [실시간 멀티 배틀 (방 생성 방어 강화)] ---------------- */
+/* ---------------- [실시간 멀티 배틀 (방장 시작 멈춤 해결)] ---------------- */
 function openMultiLobbyModal() {
   if (!currentUser.id) {
     alert("로그인 후 멀티 배틀을 이용하실 수 있습니다!");
@@ -1140,6 +1142,8 @@ function createMultiRoom() {
     return;
   }
 
+  currentMode = "";
+
   closeMultiLobbyModal();
   const code = String(Math.floor(1000 + Math.random() * 9000));
   currentRoomId = code;
@@ -1147,7 +1151,7 @@ function createMultiRoom() {
   multiRoomRef = db.ref('battle_rooms/' + code);
 
   const combined = [...SPEEDRUN_HIRA, ...SPEEDRUN_KATA];
-  const roomQuestions = shuffleArray(combined).slice(0, 5);
+  const roomQuestions = shuffleArray(combined).slice(0, 10);
 
   const initialData = {
     code: code,
@@ -1180,6 +1184,8 @@ function joinMultiRoom() {
     alert("로그인 후 참여해주세요!");
     return;
   }
+
+  currentMode = "";
 
   const code = document.getElementById('input-room-code').value.trim();
   if (!code || code.length < 4) {
@@ -1248,7 +1254,8 @@ function listenMultiRoom(code) {
       renderLobbyParticipants(room.players || {});
     }
 
-    if (room.status === 'playing' && currentMode !== 'multi') {
+    const isLobbyActive = document.getElementById('screen-lobby').classList.contains('active');
+    if (room.status === 'playing' && (isLobbyActive || currentMode !== 'multi')) {
       startMultiGameClient(room.questions);
     }
 
@@ -1270,7 +1277,7 @@ function renderLobbyParticipants(players) {
     div.className = `participant-item ${isMe ? 'is-me' : ''}`;
     div.innerHTML = `
       <span><span style="font-size:11px; color:var(--text-muted);">${p.title || ''}</span> <strong>${p.nick}</strong></span>
-      <span>${p.finishTime ? '🏁 ' + p.finishTime + 's' : (p.progress ? p.progress + '/5' : '대기 중')}</span>
+      <span>${p.finishTime ? '🏁 ' + p.finishTime + 's' : (p.progress ? p.progress + '/10' : '대기 중')}</span>
     `;
     list.appendChild(div);
   });
@@ -1292,9 +1299,12 @@ function leaveMultiRoom() {
 
 function hostStartMultiGame() {
   if (!isRoomHost || !multiRoomRef) return;
+
   multiRoomRef.update({
     status: 'playing',
     startedAt: Date.now()
+  }).catch(err => {
+    alert("게임 시작 실패: " + err.message);
   });
 }
 
@@ -1305,12 +1315,13 @@ function startMultiGameClient(questions) {
   isAnswerLock = false;
 
   document.getElementById('unit-tabs').style.display = 'none';
-  document.getElementById('quiz-title').innerText = "⚔️ 실시간 멀티 배틀";
+  document.getElementById('quiz-title').innerText = "⚔️ 실시간 멀티 배틀 (10문항)";
   document.getElementById('builder-container').style.display = 'none';
   document.getElementById('ox-container').style.display = 'none';
   document.getElementById('options-box-5').style.display = 'flex';
   document.getElementById('review-bubble').style.display = 'none';
   document.getElementById('multi-race-box').style.display = 'block';
+  document.getElementById('audio-btn').style.display = 'none';
 
   switchScreen('screen-game');
   startTime = Date.now();
@@ -1322,7 +1333,7 @@ function renderMultiRaceTracks(players) {
   trackBox.innerHTML = '';
   Object.values(players).forEach(p => {
     const isMe = p.id === currentUser.id;
-    const pct = ((p.progress || 0) / 5) * 100;
+    const pct = ((p.progress || 0) / 10) * 100;
     const row = document.createElement('div');
     row.className = 'multi-track-row';
     row.innerHTML = `
@@ -1330,7 +1341,7 @@ function renderMultiRaceTracks(players) {
       <div class="multi-track-bar-bg">
         <div class="multi-track-bar-fill ${isMe ? 'me' : ''}" style="width: ${pct}%;"></div>
       </div>
-      <span style="width: 38px; text-align: right;">${p.finishTime ? p.finishTime + 's' : (p.progress || 0) + '/5'}</span>
+      <span style="width: 44px; text-align: right;">${p.finishTime ? p.finishTime + 's' : (p.progress || 0) + '/10'}</span>
     `;
     trackBox.appendChild(row);
   });
@@ -1340,7 +1351,7 @@ function finishMultiSpeedrun() {
   const finalTime = parseFloat(((Date.now() - startTime) / 1000).toFixed(1));
   if (multiRoomRef && currentUser.id) {
     multiRoomRef.child('players/' + currentUser.id).update({
-      progress: 5,
+      progress: 10,
       finishTime: finalTime
     });
   }
@@ -1350,7 +1361,7 @@ function finishMultiSpeedrun() {
   syncWithDB();
 
   triggerCelebration();
-  alert(`🏁 멀티 배틀 완주 완료!\n기록: ${finalTime}초 (+15P / 주간 반 기여도 +15점)`);
+  alert(`🏁 멀티 배틀 10문항 완주 완료!\n기록: ${finalTime}초 (+15P / 주간 반 기여도 +15점)`);
 }
 
 // ---------------- [주간 랭킹 및 학급 대항전] ----------------
