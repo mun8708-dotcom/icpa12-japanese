@@ -1052,8 +1052,10 @@ function startSoloSpeedrun() {
 function renderSpeedrunQuestion() {
   isAnswerLock = false;
   const q = currentList[currentIdx];
-  currentAudioText = q.kana;
-  playCurrentAudio();
+  
+  // 수정: 스피드런 모드에서는 힌트 방지를 위해 음성 비활성화
+  currentAudioText = ""; 
+  // playCurrentAudio(); // 자동 재생 삭제
 
   document.getElementById('quiz-progress').innerText = `${currentIdx + 1} / ${currentList.length}`;
   document.getElementById('quiz-main-content').className = "kana-main";
@@ -1076,6 +1078,9 @@ function renderSpeedrunQuestion() {
       if (opt === q.ans) {
         isAnswerLock = true;
         btn.classList.add('btn-correct');
+        
+        // 추가: 정답을 맞췄을 때만 올바른 발음 들려주기
+        speakJapanese(q.kana);
         
         reviewBubble.innerText = `✨ 정답! [ ${q.kana} = ${q.ans} ]`;
         reviewBubble.style.display = 'inline-block';
