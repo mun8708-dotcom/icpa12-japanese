@@ -11,8 +11,8 @@
   <!-- 축하 폭죽(Confetti) 라이브러리 -->
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
-  <!-- 외부 스타일시트 -->
-  <link rel="stylesheet" href="style.css">
+  <!-- 외부 스타일시트 (캐시 방지 파라미터 추가) -->
+  <link rel="stylesheet" href="style.css?v=2.8">
 </head>
 <body>
 
@@ -25,7 +25,7 @@
       <button class="btn-shop-top" id="btn-shop" onclick="openShopModal()">🛒 칭호 상점</button>
       <button class="btn-logout" id="btn-logout" onclick="handleLogout()">변경</button>
     </div>
-    <span class="app-version" onclick="handleSecretTeacherTap()" title="교사용 관리자 진입 (연속 5번 터치)">v2.7 🎌</span>
+    <span class="app-version" onclick="handleSecretTeacherTap()" title="교사용 관리자 진입 (연속 5번 터치)">v2.8 🎌</span>
   </div>
 
   <!-- 1. 로그인 화면 -->
@@ -37,7 +37,7 @@
     <p style="font-size: 13px; color: var(--text-muted); text-align: center; margin-bottom: 24px; font-weight: 600;">고교 일본어 기초 완성 & 주간 학급 대항 리그</p>
     
     <div class="input-group">
-      <label>학번 (예: 20315 ➔ 2학년 3반 자동 분류)</label>
+      <label>학번 (예: 10315 ➔ 1학년 3반 자동 분류)</label>
       <input type="text" id="input-student-id" placeholder="선생님 확인용 학번 입력">
     </div>
     <div class="input-group">
@@ -257,8 +257,8 @@
     </table>
   </div>
 
-  <!-- 8. 칭호 상점 모달 -->
-  <div class="modal-overlay" id="shop-modal">
+  <!-- 8. 칭호 상점 모달 (기본 숨김 강제) -->
+  <div class="modal-overlay" id="shop-modal" style="display: none;">
     <div class="modal-box">
       <div class="modal-title">🛒 포인트 칭호 상점</div>
       <p style="font-size:12px; color:var(--text-muted); text-align:center; margin-bottom:12px;">
@@ -269,8 +269,8 @@
     </div>
   </div>
 
-  <!-- 9. 스피드런 솔로 모드 선택 모달 -->
-  <div class="modal-overlay" id="speedrun-modal">
+  <!-- 9. 스피드런 솔로 모드 선택 모달 (기본 숨김 강제) -->
+  <div class="modal-overlay" id="speedrun-modal" style="display: none;">
     <div class="modal-box">
       <div class="modal-title">⚡ 스피드런 모드 선택</div>
       <button class="mode-select-btn" onclick="startSelectedSpeedrun('all')">
@@ -289,8 +289,8 @@
     </div>
   </div>
 
-  <!-- 10. 실시간 멀티 배틀 로비 모달 -->
-  <div class="modal-overlay" id="multi-lobby-modal">
+  <!-- 10. 실시간 멀티 배틀 로비 모달 (기본 숨김 강제) -->
+  <div class="modal-overlay" id="multi-lobby-modal" style="display: none;">
     <div class="modal-box">
       <div class="modal-title">⚔️ 실시간 멀티 배틀 (최대 8인)</div>
       <p style="font-size:12px; color:var(--text-muted); text-align:center; margin-bottom:14px;">
