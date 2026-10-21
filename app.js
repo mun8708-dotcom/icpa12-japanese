@@ -1053,14 +1053,13 @@ function renderSpeedrunQuestion() {
   isAnswerLock = false;
   const q = currentList[currentIdx];
   
-  // 수정: 스피드런 모드에서는 힌트 방지를 위해 음성 비활성화
+  // 힌트 방지를 위해 음성 비활성화
   currentAudioText = ""; 
-  // playCurrentAudio(); // 자동 재생 삭제
 
   document.getElementById('quiz-progress').innerText = `${currentIdx + 1} / ${currentList.length}`;
   document.getElementById('quiz-main-content').className = "kana-main";
   document.getElementById('quiz-main-content').innerText = q.kana;
-  document.getElementById('quiz-sub-content').innerText = "정확한 한국어 발음을 선택하세요 (틀려도 다시 선택 가능)";
+  document.getElementById('quiz-sub-content').innerText = "정확한 한국어 발음을 선택하세요 (오답 클릭 시 기록 +1초 패널티)";
   
   const reviewBubble = document.getElementById('review-bubble');
   reviewBubble.style.display = 'none';
@@ -1068,22 +1067,41 @@ function renderSpeedrunQuestion() {
   const optBox = document.getElementById('options-box-5');
   optBox.innerHTML = '';
   
+  // [방어 로직 1] 문제 출제 시간 기록
+  const questionRenderTime = Date.now();
+
   shuffleArray(q.options).slice(0, 5).forEach(opt => {
     const btn = document.createElement('button');
     btn.className = 'btn-option-5';
     btn.innerText = opt;
-    btn.onclick = () => {
+    
+    // 이벤트 객체(e)를 파라미터로 받습니다.
+    btn.onclick = (e) => {
       if (isAnswerLock || btn.disabled) return;
+
+      // [방어 로직 2] 브라우저 콘솔창을 이용한 스크립트 강제 클릭 차단
+      if (!e.isTrusted) {
+        console.warn("스크립트를 통한 비정상적인 클릭이 감지되었습니다.");
+        return;
+      }
+
+      // [방어 로직 3] 인간의 최소 반응 시간(150ms) 이내의 초광클 무시 (오토마우스 무력화)
+      const reactionTime = Date.now() - questionRenderTime;
+      if (reactionTime < 150) {
+        return; 
+      }
 
       if (opt === q.ans) {
         isAnswerLock = true;
         btn.classList.add('btn-correct');
         
-        // 추가: 정답을 맞췄을 때만 올바른 발음 들려주기
+        // 정답을 맞췄을 때만 올바른 발음 들려주기
         speakJapanese(q.kana);
         
         reviewBubble.innerText = `✨ 정답! [ ${q.kana} = ${q.ans} ]`;
         reviewBubble.style.display = 'inline-block';
+        reviewBubble.style.color = "#047857";
+        reviewBubble.style.background = "#D1FAE5";
 
         setTimeout(() => {
           currentIdx++;
@@ -1104,8 +1122,18 @@ function renderSpeedrunQuestion() {
           }
         }, 450);
       } else {
+        // [방어 로직 4] 매크로의 무지성 클릭을 응징하는 패널티
         btn.classList.add('btn-wrong');
         btn.disabled = true;
+        
+        // 타이머 기준 시작 시간을 1초 뒤로 미뤄서 최종 기록이 1초 늘어나게 만듭니다.
+        startTime -= 1000; 
+
+        reviewBubble.innerText = `⚠️ 오답! 시간 패널티 +1초`;
+        reviewBubble.style.display = 'inline-block';
+        reviewBubble.style.color = "#B91C1C";
+        reviewBubble.style.background = "#FEE2E2";
+
         saveWrongRecord("가나 스피드런", `글자 [ ${q.kana} ]의 발음`, opt, q.ans);
       }
     };
