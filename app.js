@@ -145,7 +145,8 @@ function syncWithDB() {
 }
 
 function getTodayString() {
-  const d = new Date();
+  // 기기 조작(스마트폰 시간 변경) 방지를 위해 서버 시간 기준 날짜 계산
+  const d = new Date(getServerTime());
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
