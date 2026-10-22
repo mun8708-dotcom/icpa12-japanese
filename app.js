@@ -1,3 +1,4 @@
+(function() {
 // ---------------- [폭죽 이펙트] ----------------
 function triggerCelebration() {
   if (typeof confetti === 'function') {
@@ -775,15 +776,63 @@ function startMultiGameClient(questions) {
 }
 function renderMultiRaceTracks(players) {
   const trackBox = document.getElementById('multi-race-track-list'); trackBox.innerHTML = '';
-  Object.values(players).forEach(p => {
+  
+  // 진행도(내림차순) 및 완주시 시간(오름차순) 정렬 적용
+  const sortedPlayers = Object.values(players).sort((a, b) => {
+    if (a.progress === 10 && b.progress === 10) return a.finishTime - b.finishTime;
+    if (a.progress === 10) return -1;
+    if (b.progress === 10) return 1;
+    return (b.progress || 0) - (a.progress || 0);
+  });
+
+  sortedPlayers.forEach((p, idx) => {
     const row = document.createElement('div'); row.className = 'multi-track-row';
-    row.innerHTML = `<span class="multi-track-name">${p.nick}</span><div class="multi-track-bar-bg"><div class="multi-track-bar-fill ${p.id === currentUser.id ? 'me' : ''}" style="width: ${((p.progress || 0) / 10) * 100}%;"></div></div><span style="width: 38px; text-align: right;">${p.finishTime ? p.finishTime + 's' : (p.progress || 0) + '/10'}</span>`;
+    
+    // 완주자 등수 메달 로직
+    let rankStr = '';
+    if (p.progress === 10) {
+      if (idx === 0) rankStr = '🥇';
+      else if (idx === 1) rankStr = '🥈';
+      else if (idx === 2) rankStr = '🥉';
+      else rankStr = `${idx + 1}위`;
+    }
+
+    row.innerHTML = `
+      <div style="display:flex; flex-direction:column; width: 100px; flex-shrink:0;">
+        <span style="font-size:9px; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${p.title || '🐣 가나 병아리'}</span>
+        <span class="multi-track-name" style="width:100%; font-size:13px; font-weight:800;">
+          <span style="color:var(--danger); font-size:11px;">${rankStr}</span> ${p.nick}
+        </span>
+      </div>
+      <div class="multi-track-bar-bg"><div class="multi-track-bar-fill ${p.id === currentUser.id ? 'me' : ''}" style="width: ${((p.progress || 0) / 10) * 100}%;"></div></div>
+      <span style="width: 45px; text-align: right; font-weight:800; color:${p.progress===10 ? 'var(--danger)' : 'var(--text-muted)'};">${p.finishTime ? p.finishTime + 's' : (p.progress || 0) + '/10'}</span>
+    `;
     trackBox.appendChild(row);
   });
 }
 function finishMultiSpeedrun() {
   const finalTime = parseFloat(((getServerTime() - startTime) / 1000).toFixed(1));
-  if (multiRoomRef && currentUser.id) multiRoomRef.child('players/' + currentUser.id).update({ progress: 10, finishTime: finalTime });
+  if (multiRoomRef && currentUser.id) {
+    multiRoomRef.child('players/' + currentUser.id).update({ progress: 10, finishTime: finalTime });
+  }
+  
+  // 문제를 모두 풀었으므로 문제 영역 숨기고 대기 상태 안내
+  const mainContent = document.getElementById('quiz-main-content');
+  if (mainContent) mainContent.innerText = "🏁 레이스 완주!";
+  const subContent = document.getElementById('quiz-sub-content');
+  if (subContent) subContent.innerText = "다른 플레이어들이 완료할 때까지 기다려주세요.";
+  
+  const optionsBox = document.getElementById('options-box-5');
+  if (optionsBox) optionsBox.style.display = 'none';
+  
+  const reviewBubble = document.getElementById('review-bubble');
+  if (reviewBubble) {
+    reviewBubble.innerText = `내 기록: ${finalTime}초! 👏`;
+    reviewBubble.style.display = 'inline-block';
+    reviewBubble.style.background = '#FEF2F2';
+    reviewBubble.style.color = '#991B1B';
+  }
+
   addRewardPoints(15, '멀티 배틀 완주 완료');
 }
 
@@ -813,7 +862,7 @@ function renderRankingList() {
     if (validUsers.length === 0) { list.innerHTML = `<div style="text-align:center; padding:30px; color:#94A3B8; font-size:13px;">이번 주 획득 포인트가 아직 없습니다.</div>`; return; }
     validUsers.slice(0, 20).forEach((s, idx) => {
       const div = document.createElement('div'); div.className = `rank-item ${s.id === currentUser.id ? 'my-rank' : ''}`;
-      div.innerHTML = `<span><strong>${idx === 0 ? "👑" : (idx === 1 ? "🥈" : (idx === 2 ? "🥉" : `${idx + 1}위`))}</strong> [${s.className || '기타'}] ${s.nick}</span><span style="font-weight:bold; color:var(--primary);">${s.weeklyPoints}P</span>`;
+      div.innerHTML = `<span><strong>${idx === 0 ? "👑" : (idx === 1 ? "🥈" : (idx === 2 ? "🥉" : `${idx + 1}위`))}</strong> [${s.className || '기타'}] <span style="font-size:10px; color:var(--primary); margin:0 4px;">${s.title || ''}</span>${s.nick}</span><span style="font-weight:bold; color:var(--primary);">${s.weeklyPoints}P</span>`;
       list.appendChild(div);
     });
   } else if (currentRankTab === 'class') {
@@ -831,7 +880,7 @@ function renderRankingList() {
     if (validStudents.length === 0) { list.innerHTML = '<div style="text-align:center; padding:30px; color:#94A3B8; font-size:13px;">아직 완주 기록이 없습니다.</div>'; return; }
     validStudents.slice(0, 15).forEach((s, idx) => {
       const div = document.createElement('div'); div.className = `rank-item ${s.id === currentUser.id ? 'my-rank' : ''}`;
-      div.innerHTML = `<span><strong>${idx + 1}위</strong> [${s.className || '기타'}] ${s.nick}</span><span style="font-weight:bold; color:var(--primary);">${s.records.all}초</span>`;
+      div.innerHTML = `<span><strong>${idx + 1}위</strong> [${s.className || '기타'}] <span style="font-size:10px; color:var(--primary); margin:0 4px;">${s.title || ''}</span>${s.nick}</span><span style="font-weight:bold; color:var(--primary);">${s.records.all}초</span>`;
       list.appendChild(div);
     });
   }
@@ -873,3 +922,40 @@ function renderActivityLog() {
     list.appendChild(div);
   });
 }
+
+
+  // HTML 인라인 이벤트 핸들러(onclick)에서 호출되어야 하는 함수들만 전역으로 노출 (그 외 점수 조작 함수 등은 은닉됨)
+  window.openShopModal = openShopModal;
+  window.closeShopModal = closeShopModal;
+  window.handleLogout = handleLogout;
+  window.handleSecretTeacherTap = handleSecretTeacherTap;
+  window.handleLogin = handleLogin;
+  window.showRanking = showRanking;
+  window.openSpeedrunModal = openSpeedrunModal;
+  window.closeSpeedrunModal = closeSpeedrunModal;
+  window.openMultiLobbyModal = openMultiLobbyModal;
+  window.closeMultiLobbyModal = closeMultiLobbyModal;
+  window.openUnitSelectMode = openUnitSelectMode;
+  window.openWrongNoteScreen = openWrongNoteScreen;
+  window.openActivityLog = openActivityLog;
+  window.leaveMultiRoom = leaveMultiRoom;
+  window.goToMain = goToMain;
+  window.hostStartMultiGame = hostStartMultiGame;
+  window.handleGameBack = handleGameBack;
+  window.switchUnitTab = switchUnitTab;
+  window.playCurrentAudio = playCurrentAudio;
+  window.submitBuilderAnswer = submitBuilderAnswer;
+  window.submitOxAnswer = submitOxAnswer;
+  window.switchRankingTab = switchRankingTab;
+  window.clearWrongNotes = clearWrongNotes;
+  window.resetSpeedrunRanking = resetSpeedrunRanking;
+  window.resetAllStudentData = resetAllStudentData;
+  window.startSelectedSpeedrun = startSelectedSpeedrun;
+  window.createMultiRoom = createMultiRoom;
+  window.joinMultiRoom = joinMultiRoom;
+  window.adminGrantPoint = adminGrantPoint;
+  window.resetSingleStudent = resetSingleStudent;
+  window.equipTitle = equipTitle;
+  window.buyTitle = buyTitle;
+
+})();
