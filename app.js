@@ -398,6 +398,8 @@ async function sha256(message) {
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 let teacherTapCount = 0; let teacherTapTimer = null;
+let isTeacherAuthenticated = false; // [보안] 관리자 로그인 상태 플래그
+
 function handleSecretTeacherTap() {
   teacherTapCount++;
   clearTimeout(teacherTapTimer);
@@ -409,6 +411,7 @@ async function openTeacherModal() {
   if (!pw) return;
   const inputHash = await sha256(pw.trim());
   if (inputHash !== SECURE_TEACHER_HASH) { alert("접근 권한이 없습니다."); return; }
+  isTeacherAuthenticated = true; // 인증 성공 시 플래그 켜기
   switchScreen('screen-teacher');
   renderTeacherTable();
 }
@@ -442,6 +445,7 @@ function renderTeacherTable() {
   });
 }
 function adminGrantPoint(studentId, studentName) {
+  if (!isTeacherAuthenticated) { alert("비정상적인 접근입니다."); return; }
   const input = prompt(`[${studentName}] 학생에게 지급/차감할 포인트를 입력하세요 (예: 50 또는 -20):`, "50");
   if (!input) return;
   const delta = parseInt(input.trim(), 10);
@@ -454,12 +458,14 @@ function adminGrantPoint(studentId, studentName) {
   }
 }
 function resetSingleStudent(studentId, studentName) {
+  if (!isTeacherAuthenticated) { alert("비정상적인 접근입니다."); return; }
   if (confirm(`⚠️ [${studentName}] 학생의 진도, 포인트, 주간 점수, 보유 칭호를 초기화하시겠습니까?`)) {
     const resetData = { progress: { vocab: false, grammar: false, culture: false }, records: { all: null, hira: null, kata: null }, points: 0, weeklyPoints: 0, currentWeekKey: getMondayWeekKey(), title: "🐣 가나 병아리", ownedTitles: ["t_chick"], updatedAt: firebase.database.ServerValue.TIMESTAMP };
     db.ref(`students/${studentId}`).update(resetData).then(() => alert(`[${studentName}] 학생 데이터 초기화됨.`));
   }
 }
 function resetSpeedrunRanking() {
+  if (!isTeacherAuthenticated) { alert("비정상적인 접근입니다."); return; }
   if (confirm("⚠️ 모든 학생의 스피드런 기록만 전부 초기화하시겠습니까?")) {
     const updates = {};
     studentList.forEach(item => updates[`students/${item.id}/records`] = { all: null, hira: null, kata: null });
@@ -467,11 +473,12 @@ function resetSpeedrunRanking() {
   }
 }
 async function resetAllStudentData() {
-  const input = prompt("⚠️ 모든 학생의 일괄 초기화 진행. 비밀번호 또는 '초기화'를 입력하세요:");
+  if (!isTeacherAuthenticated) { alert("비정상적인 접근입니다."); return; }
+  const input = prompt("⚠️ 모든 학생의 일괄 초기화 진행. 관리자 인증 번호를 다시 입력하세요:");
   if (!input) return;
   const trimmedInput = input.trim();
   const inputHash = await sha256(trimmedInput);
-  if (inputHash === SECURE_TEACHER_HASH || trimmedInput === '초기화') {
+  if (inputHash === SECURE_TEACHER_HASH) { // [보안] '초기화' 텍스트 백도어 삭제
     const updates = {}; const activeWeek = getMondayWeekKey();
     studentList.forEach(s => {
       updates[`students/${s.id}/progress`] = { vocab: false, grammar: false, culture: false };
@@ -811,10 +818,14 @@ function renderMultiRaceTracks(players) {
   });
 }
 function finishMultiSpeedrun() {
+  if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
   const finalTime = parseFloat(((getServerTime() - startTime) / 1000).toFixed(1));
   if (multiRoomRef && currentUser.id) {
     multiRoomRef.child('players/' + currentUser.id).update({ progress: 10, finishTime: finalTime });
   }
+  
+  // 상단 진행도 타이머 정지 및 10/10 고정 표시
+  document.getElementById('quiz-progress').innerText = `⏱ ${finalTime}s (10/10)`;
   
   // 문제를 모두 풀었으므로 문제 영역 숨기고 대기 상태 안내
   const mainContent = document.getElementById('quiz-main-content');
