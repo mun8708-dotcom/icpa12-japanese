@@ -766,8 +766,21 @@ function renderLobbyParticipants(players) {
 }
 function leaveMultiRoom() {
   if (multiRoomRef && currentRoomId && currentUser.id) {
-    isRoomHost ? multiRoomRef.remove() : multiRoomRef.child('players/' + currentUser.id).remove();
-    multiRoomRef.off(); multiRoomRef = null; currentRoomId = null; isRoomHost = false;
+    multiRoomRef.once('value', snapshot => {
+      const room = snapshot.val();
+      const realIsHost = room && room.hostId === currentUser.id;
+
+      if (realIsHost) {
+        multiRoomRef.remove(); // 방장인 경우에만 방 전체 폭파
+      } else {
+        multiRoomRef.child('players/' + currentUser.id).remove(); // 게스트는 본인만 나가기
+      }
+      
+      multiRoomRef.off(); 
+      multiRoomRef = null; 
+      currentRoomId = null; 
+      isRoomHost = false;
+    });
   }
 }
 function hostStartMultiGame() {
