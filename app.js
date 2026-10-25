@@ -221,6 +221,13 @@ window.addEventListener('DOMContentLoaded', () => {
       console.error("사용자 로드 에러", e);
     }
   }
+  document.querySelectorAll('input').forEach(input => {
+    input.addEventListener('focus', function() {
+      setTimeout(() => {
+        this.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 300);
+    });
+  });
 });
 
 function applyUserUI() {
@@ -398,7 +405,6 @@ async function sha256(message) {
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 let teacherTapCount = 0; let teacherTapTimer = null;
-let isTeacherAuthenticated = false; // [보안] 관리자 로그인 상태 플래그
 
 function handleSecretTeacherTap() {
   teacherTapCount++;
@@ -411,7 +417,7 @@ async function openTeacherModal() {
   if (!pw) return;
   const inputHash = await sha256(pw.trim());
   if (inputHash !== SECURE_TEACHER_HASH) { alert("접근 권한이 없습니다."); return; }
-  isTeacherAuthenticated = true; // 인증 성공 시 플래그 켜기
+  sessionStorage.setItem('admin_token', inputHash);
   switchScreen('screen-teacher');
   renderTeacherTable();
 }
@@ -445,7 +451,7 @@ function renderTeacherTable() {
   });
 }
 function adminGrantPoint(studentId, studentName) {
-  if (!isTeacherAuthenticated) { alert("비정상적인 접근입니다."); return; }
+  if (sessionStorage.getItem('admin_token') !== SECURE_TEACHER_HASH) { alert("비정상적인 접근입니다."); return; }
   const input = prompt(`[${studentName}] 학생에게 지급/차감할 포인트를 입력하세요 (예: 50 또는 -20):`, "50");
   if (!input) return;
   const delta = parseInt(input.trim(), 10);
@@ -458,14 +464,14 @@ function adminGrantPoint(studentId, studentName) {
   }
 }
 function resetSingleStudent(studentId, studentName) {
-  if (!isTeacherAuthenticated) { alert("비정상적인 접근입니다."); return; }
+  if (sessionStorage.getItem('admin_token') !== SECURE_TEACHER_HASH) { alert("비정상적인 접근입니다."); return; }
   if (confirm(`⚠️ [${studentName}] 학생의 진도, 포인트, 주간 점수, 보유 칭호를 초기화하시겠습니까?`)) {
     const resetData = { progress: { vocab: false, grammar: false, culture: false }, records: { all: null, hira: null, kata: null }, points: 0, weeklyPoints: 0, currentWeekKey: getMondayWeekKey(), title: "🐣 가나 병아리", ownedTitles: ["t_chick"], updatedAt: firebase.database.ServerValue.TIMESTAMP };
     db.ref(`students/${studentId}`).update(resetData).then(() => alert(`[${studentName}] 학생 데이터 초기화됨.`));
   }
 }
 function resetSpeedrunRanking() {
-  if (!isTeacherAuthenticated) { alert("비정상적인 접근입니다."); return; }
+  if (sessionStorage.getItem('admin_token') !== SECURE_TEACHER_HASH) { alert("비정상적인 접근입니다."); return; }
   if (confirm("⚠️ 모든 학생의 스피드런 기록만 전부 초기화하시겠습니까?")) {
     const updates = {};
     studentList.forEach(item => updates[`students/${item.id}/records`] = { all: null, hira: null, kata: null });
@@ -473,7 +479,7 @@ function resetSpeedrunRanking() {
   }
 }
 async function resetAllStudentData() {
-  if (!isTeacherAuthenticated) { alert("비정상적인 접근입니다."); return; }
+  if (sessionStorage.getItem('admin_token') !== SECURE_TEACHER_HASH) { alert("비정상적인 접근입니다."); return; }
   const input = prompt("⚠️ 모든 학생의 일괄 초기화 진행. 관리자 인증 번호를 다시 입력하세요:");
   if (!input) return;
   const trimmedInput = input.trim();
@@ -749,7 +755,7 @@ function enterLobbyScreen(code) {
 function listenMultiRoom(code) {
   multiRoomRef.on('value', snapshot => {
     const room = snapshot.val();
-    if (!room) { if (currentRoomId) { alert("방이 종료되었거나 나갔습니다."); leaveMultiRoom(); goToMain(); } return; }
+    if (!room) { if (currentRoomId) { alert("방장이 퇴장하여 방이 해산되었습니다."); leaveMultiRoom(); goToMain(); } return; }
     if (document.getElementById('screen-lobby').classList.contains('active')) renderLobbyParticipants(room.players || {});
     if (room.status === 'playing' && currentMode !== 'multi') startMultiGameClient(room.questions);
     if (room.status === 'playing' && currentMode === 'multi') renderMultiRaceTracks(room.players || {});
@@ -799,7 +805,10 @@ function renderMultiRaceTracks(players) {
   
   // 진행도(내림차순) 및 완주시 시간(오름차순) 정렬 적용
   const sortedPlayers = Object.values(players).sort((a, b) => {
-    if (a.progress === 10 && b.progress === 10) return a.finishTime - b.finishTime;
+    if (a.progress === 10 && b.progress === 10) {
+      if (a.finishTime === b.finishTime) return a.id.localeCompare(b.id);
+      return a.finishTime - b.finishTime;
+    }
     if (a.progress === 10) return -1;
     if (b.progress === 10) return 1;
     return (b.progress || 0) - (a.progress || 0);
