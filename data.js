@@ -234,7 +234,7 @@ const GRAMMAR_BY_UNIT = {
     { meaning: "부정 대답: 아니요, 학생입니다", tokens: ["いいえ", "がくせい", "です"], dummy: ["はい", "せんせい"], audio: "いいえがくせいです" }
   ],
   2: [
-    { meaning: "출신 소개: 한국에서 왔습니다", tokens: ["かんこく", "から", "きました"], dummy: ["まで", "にほん"], audio: "かんこくからきました" },
+    { meaning: "출신 소개: 한국에서 왔습니다", tokens: ["かんこく", "から", "きました"], dummy: ["까지", "にほん"], audio: "かんこくからきました" },
     { meaning: "남의 집 방문 인사: 실례하겠습니다", tokens: ["おじゃま", "します"], dummy: ["どうぞ", "いらっしゃい"], audio: "おじゃまします" },
     { meaning: "방문 응답: 어서 올라오세요", tokens: ["どうぞ", "おあがり", "ください"], dummy: ["おじゃま", "します"], audio: "どうぞおあがりください" },
     { meaning: "선물 전달: 이거 받으세요", tokens: ["これ", "どうぞ"], dummy: ["どこ", "だれ"], audio: "これどうぞ" },
@@ -308,4 +308,65 @@ const CULTURE_BY_UNIT = {
     { q: "일본의 난방 기구인 '코타츠'는 탁자 아래에 열선이 있고 이불을 덮어 사용한다.", ans: "O", tip: "일본의 전통적인 대표 겨울 난방 기구입니다." },
     { q: "현관에서 신발을 벗을 때는 신발 앞코가 문 바깥쪽(나가는 방향)을 향하도록 정리한다.", ans: "O", tip: "나갈 때 신기 편하게 바깥쪽으로 돌려놓는 것이 예의입니다." },
     { q: "일본 주택의 창문에 주로 쓰이는 종이 미닫이문을 '쇼지(障子)'라고 한다.", ans: "O", tip: "전통 주택의 한지 느낌 미닫이문을 쇼지라고 부릅니다." },
-    { q: "남의 집에 방문할 때는 약속 시간보다 30분 일
+    { q: "남의 집에 방문할 때는 약속 시간보다 30분 일찍 도착하는 것이 예의이다.", ans: "X", tip: "주인이 준비할 수 있도록 정각이나 2~3분 늦게 도착하는 것이 배려입니다." }
+  ],
+  3: [],
+  4: []
+};
+
+// ---------------- [스피드런 데이터] ----------------
+const SPEEDRUN_HIRA = [
+  { kana: "あ", ans: "a", options: ["a", "i", "u", "e", "o"] },
+  { kana: "い", ans: "i", options: ["a", "i", "u", "e", "o"] },
+  { kana: "う", ans: "u", options: ["a", "i", "u", "e", "o"] },
+  { kana: "え", ans: "e", options: ["a", "i", "u", "e", "o"] },
+  { kana: "お", ans: "o", options: ["a", "i", "u", "e", "o"] },
+  { kana: "か", ans: "ka", options: ["ka", "ki", "ku", "ke", "ko"] },
+  { kana: "き", ans: "ki", options: ["ka", "ki", "ku", "ke", "ko"] },
+  { kana: "く", ans: "ku", options: ["ka", "ki", "ku", "ke", "ko"] },
+  { kana: "け", ans: "ke", options: ["ka", "ki", "ku", "ke", "ko"] },
+  { kana: "こ", ans: "ko", options: ["ka", "ki", "ku", "ke", "ko"] },
+  { kana: "さ", ans: "sa", options: ["sa", "shi", "su", "se", "so"] },
+  { kana: "し", ans: "shi", options: ["sa", "shi", "su", "se", "so"] },
+  { kana: "す", ans: "su", options: ["sa", "shi", "su", "se", "so"] },
+  { kana: "せ", ans: "se", options: ["sa", "shi", "su", "se", "so"] },
+  { kana: "そ", ans: "so", options: ["sa", "shi", "su", "se", "so"] },
+  { kana: "た", ans: "ta", options: ["ta", "chi", "tsu", "te", "to"] },
+  { kana: "ち", ans: "chi", options: ["ta", "chi", "tsu", "te", "to"] },
+  { kana: "つ", ans: "tsu", options: ["ta", "chi", "tsu", "te", "to"] },
+  { kana: "て", ans: "te", options: ["ta", "chi", "tsu", "te", "to"] },
+  { kana: "と", ans: "to", options: ["ta", "chi", "tsu", "te", "to"] },
+  { kana: "な", ans: "na", options: ["na", "ni", "nu", "ne", "no"] },
+  { kana: "に", ans: "ni", options: ["na", "ni", "nu", "ne", "no"] },
+  { kana: "ぬ", ans: "nu", options: ["na", "ni", "nu", "ne", "no"] },
+  { kana: "ね", ans: "ne", options: ["na", "ni", "nu", "ne", "no"] },
+  { kana: "の", ans: "no", options: ["na", "ni", "nu", "ne", "no"] }
+];
+
+const SPEEDRUN_KATA = [
+  { kana: "ア", ans: "a", options: ["a", "i", "u", "e", "o"] },
+  { kana: "イ", ans: "i", options: ["a", "i", "u", "e", "o"] },
+  { kana: "ウ", ans: "u", options: ["a", "i", "u", "e", "o"] },
+  { kana: "エ", ans: "e", options: ["a", "i", "u", "e", "o"] },
+  { kana: "オ", ans: "o", options: ["a", "i", "u", "e", "o"] },
+  { kana: "カ", ans: "ka", options: ["ka", "ki", "ku", "ke", "ko"] },
+  { kana: "キ", ans: "ki", options: ["ka", "ki", "ku", "ke", "ko"] },
+  { kana: "ク", ans: "ku", options: ["ka", "ki", "ku", "ke", "ko"] },
+  { kana: "ケ", ans: "ke", options: ["ka", "ki", "ku", "ke", "ko"] },
+  { kana: "コ", ans: "ko", options: ["ka", "ki", "ku", "ke", "ko"] },
+  { kana: "サ", ans: "sa", options: ["sa", "shi", "su", "se", "so"] },
+  { kana: "シ", ans: "shi", options: ["sa", "shi", "su", "se", "so"] },
+  { kana: "ス", ans: "su", options: ["sa", "shi", "su", "se", "so"] },
+  { kana: "セ", ans: "se", options: ["sa", "shi", "su", "se", "so"] },
+  { kana: "ソ", ans: "so", options: ["sa", "shi", "su", "se", "so"] },
+  { kana: "タ", ans: "ta", options: ["ta", "chi", "tsu", "te", "to"] },
+  { kana: "チ", ans: "chi", options: ["ta", "chi", "tsu", "te", "to"] },
+  { kana: "ツ", ans: "tsu", options: ["ta", "chi", "tsu", "te", "to"] },
+  { kana: "テ", ans: "te", options: ["ta", "chi", "tsu", "te", "to"] },
+  { kana: "ト", ans: "to", options: ["ta", "chi", "tsu", "te", "to"] },
+  { kana: "ナ", ans: "na", options: ["na", "ni", "nu", "ne", "no"] },
+  { kana: "ニ", ans: "ni", options: ["na", "ni", "nu", "ne", "no"] },
+  { kana: "ヌ", ans: "nu", options: ["na", "ni", "nu", "ne", "no"] },
+  { kana: "ネ", ans: "ne", options: ["na", "ni", "nu", "ne", "no"] },
+  { kana: "ノ", ans: "no", options: ["na", "ni", "nu", "ne", "no"] }
+];
