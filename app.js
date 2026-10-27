@@ -131,7 +131,6 @@ function syncWithDB() {
     currentUser.weeklyPoints = 0;
     currentUser.currentWeekKey = activeWeek;
   }
-  // 기본 설정 및 진도 등 트랜잭션이 불필요한 기본 필드 덮어쓰기
   db.ref('students/' + currentUser.id).update({
     id: currentUser.id,
     name: currentUser.name,
@@ -146,12 +145,10 @@ function syncWithDB() {
 }
 
 function getTodayString() {
-  // 기기 조작(스마트폰 시간 변경) 방지를 위해 서버 시간 기준 날짜 계산
   const d = new Date(getServerTime());
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-// [수정] 2. 출석 체크 트랜잭션 적용
 function checkDailyAttendance() {
   const today = getTodayString();
   if (currentUser.lastLoginDate !== today) {
@@ -181,7 +178,6 @@ function checkDailyAttendance() {
   }
 }
 
-// [수정] 2. 포인트 적립 트랜잭션 적용
 function addRewardPoints(amount, reason) {
   const activeWeek = getMondayWeekKey();
   db.ref('students/' + currentUser.id).transaction((student) => {
@@ -198,8 +194,7 @@ function addRewardPoints(amount, reason) {
     if (committed) {
       logActivity("⭐", `${reason} 클리어`);
       triggerCelebration();
-      alert(`⭐ ${reason} 달성!
-+${amount}P 획득 (우리 반 주간 점수 +${amount}점)`);
+      alert(`⭐ ${reason} 달성!\n+${amount}P 획득 (우리 반 주간 점수 +${amount}점)`);
     }
   });
 }
@@ -213,7 +208,7 @@ window.addEventListener('DOMContentLoaded', () => {
       if (currentUser.id && currentUser.name) {
         currentUser.className = parseClassName(currentUser.id);
         applyUserUI();
-        attachMyDataListener(); // 리스너 부착
+        attachMyDataListener(); 
         checkDailyAttendance();
         goToMain();
       }
@@ -284,9 +279,7 @@ function handleLogin() {
     const existing = snapshot.val();
     if (existing && existing.name) {
       if (existing.name !== name) {
-        alert(`❌ 로그인 실패!
-
-학번 [${cleanId}]은 이미 [${existing.name}] 학생으로 등록되어 있습니다.`);
+        alert(`❌ 로그인 실패!\n\n학번 [${cleanId}]은 이미 [${existing.name}] 학생으로 등록되어 있습니다.`);
         return;
       }
       currentUser = { ...existing };
@@ -307,10 +300,9 @@ function handleLogin() {
       currentUser.activityLog = [];
     }
     
-    // 신규 생성 시 기본 필드 세팅
     if (!existing) syncWithDB();
     
-    attachMyDataListener(); // 데이터 리스너 연결
+    attachMyDataListener();
     applyUserUI();
     checkDailyAttendance();
     goToMain();
@@ -334,7 +326,6 @@ function handleLogout() {
   }
 }
 
-// [수정] 칭호 구매 트랜잭션 적용
 function buyTitle(titleId, price, titleName) {
   if ((currentUser.points || 0) < price) {
     alert("포인트가 부족합니다! 퀴즈와 스피드런을 클리어해 포인트를 모아보세요."); return;
@@ -348,7 +339,7 @@ function buyTitle(titleId, price, titleName) {
           if (!student.ownedTitles.includes(titleId)) student.ownedTitles.push(titleId);
           student.title = titleName;
         } else {
-          return; // 포인트 부족 시 트랜잭션 취소
+          return; 
         }
       }
       return student;
@@ -396,7 +387,6 @@ function renderShopItems() {
   });
 }
 
-// ---------------- [보안: SHA-256 관리자 인증] ----------------
 const SECURE_TEACHER_HASH = "026691d5d0ade18d6cfb0f22f502d5acc4b134db82569e64fff41fa27a04c4e7";
 async function sha256(message) {
   const msgBuffer = new TextEncoder().encode(message);
@@ -484,7 +474,7 @@ async function resetAllStudentData() {
   if (!input) return;
   const trimmedInput = input.trim();
   const inputHash = await sha256(trimmedInput);
-  if (inputHash === SECURE_TEACHER_HASH) { // [보안] '초기화' 텍스트 백도어 삭제
+  if (inputHash === SECURE_TEACHER_HASH) {
     const updates = {}; const activeWeek = getMondayWeekKey();
     studentList.forEach(s => {
       updates[`students/${s.id}/progress`] = { vocab: false, grammar: false, culture: false };
@@ -600,8 +590,7 @@ function submitBuilderAnswer() {
     if (myWord === q.word) { playCurrentAudio(); triggerCelebration(); alert(`정답입니다! 👏 [ ${q.word} ]`); currentIdx++;
       if (currentIdx < currentList.length) renderVocabQuestion();
       else { db.ref(`students/${currentUser.id}/progress/vocab`).set(true); addRewardPoints(15, `${currentUnit}단원 어휘 완성`); goToMain(); }
-    } else { saveWrongRecord("문자/어휘 영역", q.meaning, myWord, q.word); alert(`❌ 오답입니다!
-(작성: ${myWord})`); }
+    } else { saveWrongRecord("문자/어휘 영역", q.meaning, myWord, q.word); alert(`❌ 오답입니다!\n(작성: ${myWord})`); }
   } else if (currentMode === 'grammar') {
     const mySentence = assembledTokens.join(''); const targetSentence = q.tokens.join('');
     if (mySentence === targetSentence) { playCurrentAudio(); triggerCelebration(); alert(`정답입니다! 👏`); currentIdx++;
@@ -619,13 +608,7 @@ function renderCultureQuestion() {
 function submitOxAnswer() {
   if (!selectedOxChoice) { alert("O 또는 X 중 하나를 선택해주세요!"); return; }
   const q = currentList[currentIdx];
-  if (selectedOxChoice === q.ans) { triggerCelebration(); alert(`⭕ 정답입니다!
-
-💡 교과서 해설:
-${q.tip}`); } else { saveWrongRecord("문화 유퀴즈", q.q, selectedOxChoice, q.ans); alert(`❌ 틀렸습니다!
-
-💡 교과서 해설:
-${q.tip}`); }
+  if (selectedOxChoice === q.ans) { triggerCelebration(); alert(`⭕ 정답입니다!\n\n💡 교과서 해설:\n${q.tip}`); } else { saveWrongRecord("문화 유퀴즈", q.q, selectedOxChoice, q.ans); alert(`❌ 틀렸습니다!\n\n💡 교과서 해설:\n${q.tip}`); }
   currentIdx++;
   if (currentIdx < currentList.length) { renderCultureQuestion(); }
   else { db.ref(`students/${currentUser.id}/progress/culture`).set(true); addRewardPoints(15, `${currentUnit}단원 문화 클리어`); goToMain(); }
@@ -634,7 +617,11 @@ ${q.tip}`); }
 // ---------------- [솔로 스피드런] ----------------
 function openSpeedrunModal() { document.getElementById('speedrun-modal').style.display = 'flex'; }
 function closeSpeedrunModal() { document.getElementById('speedrun-modal').style.display = 'none'; }
-function startSelectedSpeedrun(cat) { closeSpeedrunModal(); speedrunCategory = cat; startSoloSpeedrun(); }
+function startSelectedSpeedrun(cat) { 
+  closeSpeedrunModal(); 
+  speedrunCategory = cat; 
+  startSoloSpeedrun(); 
+}
 function startSoloSpeedrun() {
   if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
   isAnswerLock = false; currentMode = "speedrun";
@@ -646,7 +633,7 @@ function startSoloSpeedrun() {
   document.getElementById('options-box-5').style.display = 'flex'; document.getElementById('review-bubble').style.display = 'none'; document.getElementById('multi-race-box').style.display = 'none';
   switchScreen('screen-game');
   
-  startTime = getServerTime(); // [수정] 서버 시간 기준 시작
+  startTime = getServerTime(); 
   timerInterval = setInterval(() => { const elapsed = ((getServerTime() - startTime) / 1000).toFixed(1); document.getElementById('quiz-progress').innerText = `⏱ ${elapsed}s (${currentIdx + 1}/${currentList.length})`; }, 100);
   renderSpeedrunQuestion();
 }
@@ -681,7 +668,6 @@ function renderSpeedrunQuestion() {
     optBox.appendChild(btn);
   });
 }
-// [수정] 스피드런 종료 시 트랜잭션 적용 (서버 시간 사용)
 function finishSoloSpeedrun() {
   clearInterval(timerInterval); timerInterval = null;
   const finalTime = parseFloat(((getServerTime() - startTime) / 1000).toFixed(1));
@@ -705,9 +691,7 @@ function finishSoloSpeedrun() {
     if (committed) {
       const isBest = snapshot.val().records[speedrunCategory] === finalTime;
       triggerCelebration();
-      alert(`🎉 10문항 완주 성공!
-기록: ${finalTime}초${isBest ? ' (⭐ 최고기록 경신!)' : ''}
-완주 보너스 +10P 적립! [우리 반 주간 기여도 +10점]`);
+      alert(`🎉 10문항 완주 성공!\n기록: ${finalTime}초${isBest ? ' (⭐ 최고기록 경신!)' : ''}\n완주 보너스 +10P 적립! [우리 반 주간 기여도 +10점]`);
       currentRankTab = "all"; showRanking();
     }
   });
@@ -716,7 +700,6 @@ function finishSoloSpeedrun() {
 // ---------------- [실시간 멀티 배틀] ----------------
 function openMultiLobbyModal() { document.getElementById('input-room-code').value = ''; document.getElementById('multi-lobby-modal').style.display = 'flex'; }
 function closeMultiLobbyModal() { document.getElementById('multi-lobby-modal').style.display = 'none'; }
-// [수정] 방 생성 및 자동 소멸(onDisconnect) 추가
 function createMultiRoom() {
   closeMultiLobbyModal();
   const code = String(Math.floor(1000 + Math.random() * 9000));
@@ -726,7 +709,6 @@ function createMultiRoom() {
   initialData.players[currentUser.id] = { id: currentUser.id, nick: currentUser.nick, title: currentUser.title, progress: 0, finishTime: null, rank: 0 };
 
   multiRoomRef.set(initialData).then(() => {
-    // 방 폭파 onDisconnect 설정
     multiRoomRef.onDisconnect().remove();
     enterLobbyScreen(code); listenMultiRoom(code);
   });
@@ -777,9 +759,9 @@ function leaveMultiRoom() {
       const realIsHost = room && room.hostId === currentUser.id;
 
       if (realIsHost) {
-        multiRoomRef.remove(); // 방장인 경우에만 방 전체 폭파
+        multiRoomRef.remove(); 
       } else {
-        multiRoomRef.child('players/' + currentUser.id).remove(); // 게스트는 본인만 나가기
+        multiRoomRef.child('players/' + currentUser.id).remove();
       }
       
       multiRoomRef.off(); 
@@ -803,7 +785,6 @@ function startMultiGameClient(questions) {
 function renderMultiRaceTracks(players) {
   const trackBox = document.getElementById('multi-race-track-list'); trackBox.innerHTML = '';
   
-  // 진행도(내림차순) 및 완주시 시간(오름차순) 정렬 적용
   const sortedPlayers = Object.values(players).sort((a, b) => {
     if (a.progress === 10 && b.progress === 10) {
       if (a.finishTime === b.finishTime) return a.id.localeCompare(b.id);
@@ -817,7 +798,6 @@ function renderMultiRaceTracks(players) {
   sortedPlayers.forEach((p, idx) => {
     const row = document.createElement('div'); row.className = 'multi-track-row';
     
-    // 완주자 등수 메달 로직
     let rankStr = '';
     if (p.progress === 10) {
       if (idx === 0) rankStr = '🥇';
@@ -846,10 +826,8 @@ function finishMultiSpeedrun() {
     multiRoomRef.child('players/' + currentUser.id).update({ progress: 10, finishTime: finalTime });
   }
   
-  // 상단 진행도 타이머 정지 및 10/10 고정 표시
   document.getElementById('quiz-progress').innerText = `⏱ ${finalTime}s (10/10)`;
   
-  // 문제를 모두 풀었으므로 문제 영역 숨기고 대기 상태 안내
   const mainContent = document.getElementById('quiz-main-content');
   if (mainContent) mainContent.innerText = "🏁 레이스 완주!";
   const subContent = document.getElementById('quiz-sub-content');
@@ -925,7 +903,7 @@ function logActivity(icon, desc) {
   const now = new Date();
   const timeStr = `${now.getMonth()+1}/${now.getDate()} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
   currentUser.activityLog.unshift({ time: timeStr, icon: icon, desc: desc });
-  if (currentUser.activityLog.length > 50) currentUser.activityLog.pop(); // 최근 50개만 유지
+  if (currentUser.activityLog.length > 50) currentUser.activityLog.pop(); 
   
   if (currentUser.id) {
     db.ref(`students/${currentUser.id}/activityLog`).set(currentUser.activityLog);
@@ -947,7 +925,7 @@ function renderActivityLog() {
   }
   logs.forEach(log => {
     const div = document.createElement('div');
-    div.className = 'wrong-item'; // 재사용 가능한 디자인
+    div.className = 'wrong-item'; 
     div.innerHTML = `
       <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">${log.time}</div>
       <div style="font-size:14px; font-weight:800; color:var(--text);"><span style="margin-right:6px;">${log.icon}</span>${log.desc}</div>
@@ -956,8 +934,6 @@ function renderActivityLog() {
   });
 }
 
-
-  // HTML 인라인 이벤트 핸들러(onclick)에서 호출되어야 하는 함수들만 전역으로 노출 (그 외 점수 조작 함수 등은 은닉됨)
   window.openShopModal = openShopModal;
   window.closeShopModal = closeShopModal;
   window.handleLogout = handleLogout;
