@@ -84,6 +84,7 @@ let currentUser = {
   lastLoginDate: ""
 };
 
+// [수정] 1. 전역 리스너 분리 (전체 리스트 조회용)
 db.ref('students').on('value', (snapshot) => {
   const data = snapshot.val();
   studentList = data ? Object.values(data) : [];
@@ -99,6 +100,7 @@ db.ref('students').on('value', (snapshot) => {
   }
 });
 
+// [수정] 본인 데이터 전용 실시간 리스너 (상태 롤백 방지)
 let myDataListener = null;
 function attachMyDataListener() {
   if (myDataListener) db.ref('students/' + currentUser.id).off('value', myDataListener);
@@ -192,7 +194,8 @@ function addRewardPoints(amount, reason) {
     if (committed) {
       logActivity("⭐", `${reason} 클리어`);
       triggerCelebration();
-      alert(`⭐ ${reason} 달성!\n+${amount}P 획득 (우리 반 주간 점수 +${amount}점)`);
+      alert(`⭐ ${reason} 달성!
++${amount}P 획득 (우리 반 주간 점수 +${amount}점)`);
     }
   });
 }
@@ -267,7 +270,8 @@ function handleLogin() {
     alert("올바른 학번 형식을 입력해주세요. (예: 10315)"); return;
   }
   if (!cleanId.startsWith('1')) {
-    alert("⚠️ 본 앱은 1학년 전용 학습 플랫폼입니다.\n1학년 학번을 정확히 입력해주세요."); return;
+    alert("⚠️ 본 앱은 1학년 전용 학습 플랫폼입니다.
+1학년 학번을 정확히 입력해주세요."); return;
   }
   if (!nick) nick = name;
 
@@ -277,7 +281,9 @@ function handleLogin() {
     const existing = snapshot.val();
     if (existing && existing.name) {
       if (existing.name !== name) {
-        alert(`❌ 로그인 실패!\n\n학번 [${cleanId}]은 이미 [${existing.name}] 학생으로 등록되어 있습니다.`);
+        alert(`❌ 로그인 실패!
+
+학번 [${cleanId}]은 이미 [${existing.name}] 학생으로 등록되어 있습니다.`);
         return;
       }
       currentUser = { ...existing };
@@ -532,9 +538,7 @@ let currentRoomId = null; let isRoomHost = false; let multiRoomRef = null;
 function switchScreen(screenId) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById(screenId).classList.add('active'); }
 function goToMain() {
   if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
-  isAnswerLock = false; selectedOxChoice = null;
-  currentMode = ""; // 상태 완전 초기화
-  updateBadges(); updatePointUI(); updateWeeklyBanner(); switchScreen('screen-main');
+  isAnswerLock = false; selectedOxChoice = null; updateBadges(); updatePointUI(); updateWeeklyBanner(); switchScreen('screen-main');
 }
 function handleGameBack() { if (currentMode === 'multi') { if (confirm("대결 중 나가시겠습니까?")) { leaveMultiRoom(); goToMain(); } } else { goToMain(); } }
 function updateBadges() {
@@ -590,7 +594,8 @@ function submitBuilderAnswer() {
     if (myWord === q.word) { playCurrentAudio(); triggerCelebration(); alert(`정답입니다! 👏 [ ${q.word} ]`); currentIdx++;
       if (currentIdx < currentList.length) renderVocabQuestion();
       else { db.ref(`students/${currentUser.id}/progress/vocab`).set(true); addRewardPoints(15, `${currentUnit}단원 어휘 완성`); goToMain(); }
-    } else { saveWrongRecord("문자/어휘 영역", q.meaning, myWord, q.word); alert(`❌ 오답입니다!\n(작성: ${myWord})`); }
+    } else { saveWrongRecord("문자/어휘 영역", q.meaning, myWord, q.word); alert(`❌ 오답입니다!
+(작성: ${myWord})`); }
   } else if (currentMode === 'grammar') {
     const mySentence = assembledTokens.join(''); const targetSentence = q.tokens.join('');
     if (mySentence === targetSentence) { playCurrentAudio(); triggerCelebration(); alert(`정답입니다! 👏`); currentIdx++;
@@ -608,7 +613,13 @@ function renderCultureQuestion() {
 function submitOxAnswer() {
   if (!selectedOxChoice) { alert("O 또는 X 중 하나를 선택해주세요!"); return; }
   const q = currentList[currentIdx];
-  if (selectedOxChoice === q.ans) { triggerCelebration(); alert(`⭕ 정답입니다!\n\n💡 교과서 해설:\n${q.tip}`); } else { saveWrongRecord("문화 유퀴즈", q.q, selectedOxChoice, q.ans); alert(`❌ 틀렸습니다!\n\n💡 교과서 해설:\n${q.tip}`); }
+  if (selectedOxChoice === q.ans) { triggerCelebration(); alert(`⭕ 정답입니다!
+
+💡 교과서 해설:
+${q.tip}`); } else { saveWrongRecord("문화 유퀴즈", q.q, selectedOxChoice, q.ans); alert(`❌ 틀렸습니다!
+
+💡 교과서 해설:
+${q.tip}`); }
   currentIdx++;
   if (currentIdx < currentList.length) { renderCultureQuestion(); }
   else { db.ref(`students/${currentUser.id}/progress/culture`).set(true); addRewardPoints(15, `${currentUnit}단원 문화 클리어`); goToMain(); }
@@ -643,12 +654,12 @@ function renderSpeedrunQuestion() {
   const reviewBubble = document.getElementById('review-bubble'); reviewBubble.style.display = 'none';
   const optBox = document.getElementById('options-box-5'); optBox.innerHTML = '';
   
-  const questionRenderTime = getServerTime();
+  const questionRenderTime = Date.now();
   shuffleArray(q.options).slice(0, 10).forEach(opt => {
     const btn = document.createElement('button'); btn.className = 'btn-option-5'; btn.innerText = opt;
     btn.onclick = (e) => {
       if (isAnswerLock || btn.disabled) return;
-      if (!e.isTrusted || (getServerTime() - questionRenderTime) < 150) return;
+      if (!e.isTrusted || (Date.now() - questionRenderTime) < 150) return;
 
       if (opt === q.ans) {
         isAnswerLock = true; btn.classList.add('btn-correct'); speakJapanese(q.kana);
@@ -691,7 +702,9 @@ function finishSoloSpeedrun() {
     if (committed) {
       const isBest = snapshot.val().records[speedrunCategory] === finalTime;
       triggerCelebration();
-      alert(`🎉 10문항 완주 성공!\n기록: ${finalTime}초${isBest ? ' (⭐ 최고기록 경신!)' : ''}\n완주 보너스 +10P 적립! [우리 반 주간 기여도 +10점]`);
+      alert(`🎉 10문항 완주 성공!
+기록: ${finalTime}초${isBest ? ' (⭐ 최고기록 경신!)' : ''}
+완주 보너스 +10P 적립! [우리 반 주간 기여도 +10점]`);
       currentRankTab = "all"; showRanking();
     }
   });
@@ -700,10 +713,8 @@ function finishSoloSpeedrun() {
 // ---------------- [실시간 멀티 배틀] ----------------
 function openMultiLobbyModal() { document.getElementById('input-room-code').value = ''; document.getElementById('multi-lobby-modal').style.display = 'flex'; }
 function closeMultiLobbyModal() { document.getElementById('multi-lobby-modal').style.display = 'none'; }
-
 function createMultiRoom() {
   closeMultiLobbyModal();
-  currentMode = ""; // 상태 완벽 초기화
   const code = String(Math.floor(1000 + Math.random() * 9000));
   currentRoomId = code; isRoomHost = true; multiRoomRef = db.ref('battle_rooms/' + code);
   const roomQuestions = shuffleArray([...SPEEDRUN_HIRA, ...SPEEDRUN_KATA]).slice(0, 10);
@@ -711,15 +722,13 @@ function createMultiRoom() {
   initialData.players[currentUser.id] = { id: currentUser.id, nick: currentUser.nick, title: currentUser.title, progress: 0, finishTime: null, rank: 0 };
 
   multiRoomRef.set(initialData).then(() => {
-    multiRoomRef.onDisconnect().remove();
+    multiRoomRef.child('players/' + currentUser.id).onDisconnect().remove();
     enterLobbyScreen(code); listenMultiRoom(code);
   });
 }
-
 function joinMultiRoom() {
   const code = document.getElementById('input-room-code').value.trim();
   if (!code || code.length < 4) { alert("4자리 방 코드를 정확히 입력해주세요!"); return; }
-  currentMode = ""; // 상태 완벽 초기화
   db.ref('battle_rooms/' + code).once('value', snapshot => {
     const room = snapshot.val();
     if (!room) { alert("존재하지 않는 방 코드입니다!"); return; }
@@ -732,25 +741,30 @@ function joinMultiRoom() {
     });
   });
 }
-
 function enterLobbyScreen(code) {
-  currentMode = ""; // 상태 완벽 초기화
   document.getElementById('lobby-code-display').innerText = code;
   document.getElementById('host-controls').style.display = isRoomHost ? 'block' : 'none';
   document.getElementById('guest-controls').style.display = isRoomHost ? 'none' : 'block';
   switchScreen('screen-lobby');
 }
-
 function listenMultiRoom(code) {
   multiRoomRef.on('value', snapshot => {
     const room = snapshot.val();
-    if (!room) { if (currentRoomId) { alert("방장이 퇴장하여 방이 해산되었습니다."); leaveMultiRoom(); goToMain(); } return; }
+    if (!room) { 
+      if (currentRoomId) { 
+        if (currentMode !== 'multi') {
+          alert("방장이 퇴장하여 방이 해산되었습니다."); 
+          leaveMultiRoom(); 
+          goToMain(); 
+        }
+      } 
+      return; 
+    }
     if (document.getElementById('screen-lobby').classList.contains('active')) renderLobbyParticipants(room.players || {});
     if (room.status === 'playing' && currentMode !== 'multi') startMultiGameClient(room.questions);
     if (room.status === 'playing' && currentMode === 'multi') renderMultiRaceTracks(room.players || {});
   });
 }
-
 function renderLobbyParticipants(players) {
   const list = document.getElementById('lobby-participant-list'); list.innerHTML = '';
   const arr = Object.values(players); document.getElementById('lobby-count-display').innerText = `${arr.length} / 8명`;
@@ -760,32 +774,33 @@ function renderLobbyParticipants(players) {
     list.appendChild(div);
   });
 }
-
 function leaveMultiRoom() {
   if (multiRoomRef && currentRoomId && currentUser.id) {
-    multiRoomRef.once('value', snapshot => {
-      const room = snapshot.val();
-      const realIsHost = room && room.hostId === currentUser.id;
+    const tempRef = multiRoomRef;
+    const myId = currentUser.id;
 
-      if (realIsHost) {
-        multiRoomRef.remove(); 
-      } else {
-        multiRoomRef.child('players/' + currentUser.id).remove();
+    tempRef.once('value').then(snapshot => {
+      const room = snapshot.val();
+      if (room) {
+        const isHost = (room.hostId === myId);
+        if (isHost && room.status === 'waiting') {
+          tempRef.remove(); 
+        } else {
+          tempRef.child('players/' + myId).remove();
+        }
       }
-      
-      multiRoomRef.off(); 
-      multiRoomRef = null; 
-      currentRoomId = null; 
-      isRoomHost = false;
     });
+    
+    multiRoomRef.off(); 
+    multiRoomRef = null; 
+    currentRoomId = null; 
+    isRoomHost = false;
   }
 }
-
 function hostStartMultiGame() {
   if (!isRoomHost || !multiRoomRef) return;
   multiRoomRef.update({ status: 'playing', startedAt: firebase.database.ServerValue.TIMESTAMP });
 }
-
 function startMultiGameClient(questions) {
   currentMode = 'multi'; currentList = questions; currentIdx = 0; isAnswerLock = false;
   document.getElementById('unit-tabs').style.display = 'none'; document.getElementById('quiz-title').innerText = "⚔️ 실시간 멀티 배틀";
@@ -793,7 +808,6 @@ function startMultiGameClient(questions) {
   document.getElementById('options-box-5').style.display = 'flex'; document.getElementById('review-bubble').style.display = 'none'; document.getElementById('multi-race-box').style.display = 'block';
   switchScreen('screen-game'); startTime = getServerTime(); timerInterval = setInterval(() => { const elapsed = ((getServerTime() - startTime) / 1000).toFixed(1); document.getElementById('quiz-progress').innerText = `⏱ ${elapsed}s (${currentIdx + 1}/${currentList.length})`; }, 100); renderSpeedrunQuestion();
 }
-
 function renderMultiRaceTracks(players) {
   const trackBox = document.getElementById('multi-race-track-list'); trackBox.innerHTML = '';
   
@@ -831,7 +845,6 @@ function renderMultiRaceTracks(players) {
     trackBox.appendChild(row);
   });
 }
-
 function finishMultiSpeedrun() {
   if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
   const finalTime = parseFloat(((getServerTime() - startTime) / 1000).toFixed(1));
