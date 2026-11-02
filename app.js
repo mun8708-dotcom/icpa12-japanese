@@ -261,7 +261,18 @@ function handleLogin() {
   const rawId = document.getElementById('input-student-id').value.trim();
   const name = document.getElementById('input-student-name').value.trim();
   let nick = document.getElementById('input-student-nick').value.trim();
+  
+  // 입장코드 가져오기 및 검증
+  const accessCode = document.getElementById('input-access-code').value.trim(); 
   const cleanId = rawId.replace(/[^0-9]/g, '');
+  const SECRET_CODE = "가나고"; 
+
+  if (!accessCode) {
+    alert("입장코드를 입력해주세요!"); return;
+  }
+  if (accessCode !== SECRET_CODE) {
+    alert("❌ 입장코드가 일치하지 않습니다. 선생님께 확인해주세요!"); return;
+  }
 
   if (!cleanId || !name) {
     alert("학번과 실명을 정확히 입력해주세요!"); return;
@@ -284,9 +295,7 @@ function handleLogin() {
     const existing = snapshot.val();
     if (existing && existing.name) {
       if (existing.name !== name) {
-        alert(`❌ 로그인 실패!
-
-학번 [${cleanId}]은 이미 [${existing.name}] 학생으로 등록되어 있습니다.`);
+        alert(`❌ 로그인 실패!\n\n학번 [${cleanId}]은 이미 [${existing.name}] 학생으로 등록되어 있습니다.`);
         return;
       }
       currentUser = { ...existing };
@@ -329,6 +338,10 @@ function handleLogout() {
     document.getElementById('input-student-id').value = '';
     document.getElementById('input-student-name').value = '';
     document.getElementById('input-student-nick').value = '';
+    
+    // 로그아웃 시 입장코드 칸도 비우기
+    document.getElementById('input-access-code').value = ''; 
+    
     switchScreen('screen-login');
   }
 }
@@ -597,8 +610,7 @@ function submitBuilderAnswer() {
     if (myWord === q.word) { playCurrentAudio(); triggerCelebration(); alert(`정답입니다! 👏 [ ${q.word} ]`); currentIdx++;
       if (currentIdx < currentList.length) renderVocabQuestion();
       else { db.ref(`students/${currentUser.id}/progress/vocab`).set(true); addRewardPoints(15, `${currentUnit}단원 어휘 완성`); goToMain(); }
-    } else { saveWrongRecord("문자/어휘 영역", q.meaning, myWord, q.word); alert(`❌ 오답입니다!
-(작성: ${myWord})`); }
+    } else { saveWrongRecord("문자/어휘 영역", q.meaning, myWord, q.word); alert(`❌ 오답입니다!\n(작성: ${myWord})`); }
   } else if (currentMode === 'grammar') {
     const mySentence = assembledTokens.join(''); const targetSentence = q.tokens.join('');
     if (mySentence === targetSentence) { playCurrentAudio(); triggerCelebration(); alert(`정답입니다! 👏`); currentIdx++;
@@ -616,13 +628,7 @@ function renderCultureQuestion() {
 function submitOxAnswer() {
   if (!selectedOxChoice) { alert("O 또는 X 중 하나를 선택해주세요!"); return; }
   const q = currentList[currentIdx];
-  if (selectedOxChoice === q.ans) { triggerCelebration(); alert(`⭕ 정답입니다!
-
-💡 교과서 해설:
-${q.tip}`); } else { saveWrongRecord("문화 유퀴즈", q.q, selectedOxChoice, q.ans); alert(`❌ 틀렸습니다!
-
-💡 교과서 해설:
-${q.tip}`); }
+  if (selectedOxChoice === q.ans) { triggerCelebration(); alert(`⭕ 정답입니다!\n\n💡 교과서 해설:\n${q.tip}`); } else { saveWrongRecord("문화 유퀴즈", q.q, selectedOxChoice, q.ans); alert(`❌ 틀렸습니다!\n\n💡 교과서 해설:\n${q.tip}`); }
   currentIdx++;
   if (currentIdx < currentList.length) { renderCultureQuestion(); }
   else { db.ref(`students/${currentUser.id}/progress/culture`).set(true); addRewardPoints(15, `${currentUnit}단원 문화 클리어`); goToMain(); }
@@ -705,9 +711,7 @@ function finishSoloSpeedrun() {
     if (committed) {
       const isBest = snapshot.val().records[speedrunCategory] === finalTime;
       triggerCelebration();
-      alert(`🎉 10문항 완주 성공!
-기록: ${finalTime}초${isBest ? ' (⭐ 최고기록 경신!)' : ''}
-완주 보너스 +10P 적립! [우리 반 주간 기여도 +10점]`);
+      alert(`🎉 10문항 완주 성공!\n기록: ${finalTime}초${isBest ? ' (⭐ 최고기록 경신!)' : ''}\n완주 보너스 +10P 적립! [우리 반 주간 기여도 +10점]`);
       currentRankTab = "all"; showRanking();
     }
   });
