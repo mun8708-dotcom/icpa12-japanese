@@ -269,10 +269,13 @@ function handleLogin() {
   if (cleanId.length < 3) {
     alert("올바른 학번 형식을 입력해주세요. (예: 10315)"); return;
   }
+  
+  // 백틱을 사용하여 줄바꿈 에러 수정
   if (!cleanId.startsWith('1')) {
-    alert("⚠️ 본 앱은 1학년 전용 학습 플랫폼입니다.
-1학년 학번을 정확히 입력해주세요."); return;
+    alert(`⚠️ 본 앱은 1학년 전용 학습 플랫폼입니다.
+1학년 학번을 정확히 입력해주세요.`); return;
   }
+  
   if (!nick) nick = name;
 
   const activeWeek = getMondayWeekKey();
