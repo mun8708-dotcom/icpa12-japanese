@@ -84,7 +84,6 @@ let currentUser = {
   lastLoginDate: ""
 };
 
-// [수정] 1. 전역 리스너 분리 (전체 리스트 조회용)
 db.ref('students').on('value', (snapshot) => {
   const data = snapshot.val();
   studentList = data ? Object.values(data) : [];
@@ -100,7 +99,6 @@ db.ref('students').on('value', (snapshot) => {
   }
 });
 
-// [수정] 본인 데이터 전용 실시간 리스너 (상태 롤백 방지)
 let myDataListener = null;
 function attachMyDataListener() {
   if (myDataListener) db.ref('students/' + currentUser.id).off('value', myDataListener);
@@ -194,8 +192,7 @@ function addRewardPoints(amount, reason) {
     if (committed) {
       logActivity("⭐", `${reason} 클리어`);
       triggerCelebration();
-      alert(`⭐ ${reason} 달성!
-+${amount}P 획득 (우리 반 주간 점수 +${amount}점)`);
+      alert(`⭐ ${reason} 달성!\n+${amount}P 획득 (우리 반 주간 점수 +${amount}점)`);
     }
   });
 }
@@ -262,7 +259,6 @@ function handleLogin() {
   const name = document.getElementById('input-student-name').value.trim();
   let nick = document.getElementById('input-student-nick').value.trim();
   
-  // 입장코드 가져오기 및 검증
   const accessCode = document.getElementById('input-access-code').value.trim(); 
   const cleanId = rawId.replace(/[^0-9]/g, '');
   const SECRET_CODE = "가나고"; 
@@ -281,10 +277,8 @@ function handleLogin() {
     alert("올바른 학번 형식을 입력해주세요. (예: 10315)"); return;
   }
   
-  // 백틱을 사용하여 줄바꿈 에러 수정
   if (!cleanId.startsWith('1')) {
-    alert(`⚠️ 본 앱은 1학년 전용 학습 플랫폼입니다.
-1학년 학번을 정확히 입력해주세요.`); return;
+    alert(`⚠️ 본 앱은 1학년 전용 학습 플랫폼입니다.\n1학년 학번을 정확히 입력해주세요.`); return;
   }
   
   if (!nick) nick = name;
@@ -339,7 +333,6 @@ function handleLogout() {
     document.getElementById('input-student-name').value = '';
     document.getElementById('input-student-nick').value = '';
     
-    // 로그아웃 시 입장코드 칸도 비우기
     document.getElementById('input-access-code').value = ''; 
     
     switchScreen('screen-login');
@@ -658,7 +651,10 @@ function startSoloSpeedrun() {
   renderSpeedrunQuestion();
 }
 function renderSpeedrunQuestion() {
-  isAnswerLock = false; const q = currentList[currentIdx]; currentAudioText = "";
+  isAnswerLock = false; const q = currentList[currentIdx]; 
+  
+  currentAudioText = q.kana;
+  
   document.getElementById('quiz-progress').innerText = `${currentIdx + 1} / ${currentList.length}`; document.getElementById('quiz-main-content').className = "kana-main"; document.getElementById('quiz-main-content').innerText = q.kana;
   const reviewBubble = document.getElementById('review-bubble'); reviewBubble.style.display = 'none';
   const optBox = document.getElementById('options-box-5'); optBox.innerHTML = '';
@@ -668,7 +664,9 @@ function renderSpeedrunQuestion() {
     const btn = document.createElement('button'); btn.className = 'btn-option-5'; btn.innerText = opt;
     btn.onclick = (e) => {
       if (isAnswerLock || btn.disabled) return;
-      if (!e.isTrusted || (Date.now() - questionRenderTime) < 150) return;
+      
+      // 모바일/패드(태블릿), 터치 펜 등의 환경에서 e.isTrusted가 false로 잡혀 버튼 클릭이 무시되는 현상 방지
+      if ((Date.now() - questionRenderTime) < 150) return;
 
       if (opt === q.ans) {
         isAnswerLock = true; btn.classList.add('btn-correct'); speakJapanese(q.kana);
