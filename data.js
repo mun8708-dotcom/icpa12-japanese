@@ -47,3 +47,24 @@ const SPEEDRUN_KATA = [
   { kana: "レ", ko: "레", ans: "レ", options: ["レ", "ル", "ワ", "ネ", "ソ"] },
   { kana: "ロ", ko: "로", ans: "ロ", options: ["ロ", "コ", "ル", "ゴ", "ユ"] }
 ];
+
+// ---------------- [학습 모드 필수 데이터 추가] ----------------
+const VOCAB_BY_UNIT = {
+  1: [ { word: "あき", meaning: "가을", audio: "あき" } ],
+  2: [], 3: [], 4: []
+};
+
+const GRAMMAR_BY_UNIT = {
+  1: [ { meaning: "이것은 펜입니다.", tokens: ["これ", "は", "ペン", "です", "。"], dummy: ["が", "に"], audio: "これはぺんです" } ],
+  2: [], 3: [], 4: []
+};
+
+const CULTURE_BY_UNIT = {
+  1: [ { q: "일본의 수도는 교토이다.", ans: "X", tip: "일본의 수도는 도쿄입니다." } ],
+  2: [], 3: [], 4: []
+};
+
+const SHOP_TITLES = [
+  { id: "t_chick", name: "🐣 가나 병아리", price: 0, desc: "기본 지급 칭호" },
+  { id: "t_master", name: "👑 일본어 마스터", price: 100, desc: "고수의 증명" }
+];
