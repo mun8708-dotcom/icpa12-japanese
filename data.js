@@ -31,21 +31,21 @@ const SPEEDRUN_KATA = [
   { kana: "ユ", ko: "유", ans: "유 (yu)", options: ["유 (yu)", "코 (ko)", "요 (yo)", "에 (e)", "마 (ma)"] },
   { kana: "サ", ko: "사", ans: "사 (sa)", options: ["사 (sa)", "세 (se)", "치 (chi)", "키 (ki)", "스 (su)"] },
   { kana: "セ", ko: "세", ans: "세 (se)", options: ["세 (se)", "사 (sa)", "야 (ya)", "히 (hi)", "테 (te)"] },
-  { kana: "タ", ko: "타", ans: "타 (ta)", options: ["타 (ta)", "쿠 (ku)", "다 (da)", "케 (ke)", "치 (chi)"] },
+  { kana: "タ", ko: "타", ans: "타 (ta)", options: ["タ (ta)", "쿠 (ku)", "다 (da)", "케 (ke)", "치 (chi)"] },
   { kana: "チ", ko: "치", ans: "치 (chi)", options: ["치 (chi)", "사 (sa)", "테 (te)", "나 (na)", "시 (shi)"] },
   { kana: "テ", ko: "테", ans: "테 (te)", options: ["테 (te)", "치 (chi)", "라 (ra)", "데 (de)", "토 (to)"] },
   { kana: "ト", ko: "토", ans: "토 (to)", options: ["토 (to)", "이 (i)", "보 (bo)", "하 (ha)", "테 (te)"] },
   { kana: "ヌ", ko: "누", ans: "누 (nu)", options: ["누 (nu)", "메 (me)", "스 (su)", "후 (fu)", "와 (wa)"] },
   { kana: "ネ", ko: "네", ans: "네 (ne)", options: ["네 (ne)", "와 (wa)", "호 (ho)", "누 (nu)", "메 (me)"] },
-  { kana: "ハ", ko: "하", ans: "하 (ha)", options: ["하 (ha)", "호 (ho)", "바 (ba)", "파 (pa)", "와 (wa)"] },
-  { kana: "ホ", ko: "호", ans: "호 (ho)", options: ["호 (ho)", "하 (ha)", "키 (ki)", "마 (ma)", "네 (ne)"] },
-  { kana: "マ", ko: "마", ans: "마 (ma)", options: ["마 (ma)", "무 (mu)", "아 (a)", "호 (ho)", "유 (yu)"] },
-  { kana: "ミ", ko: "미", ans: "ミ (mi)", options: ["미 (mi)", "니 (ni)", "시 (shi)", "사 (sa)", "치 (chi)"] },
-  { kana: "ム", ko: "무", ans: "무 (mu)", options: ["무 (mu)", "마 (ma)", "스 (su)", "라 (ra)", "누 (nu)"] },
-  { kana: "ラ", ko: "라", ans: "라 (ra)", options: ["라 (ra)", "우 (u)", "후 (fu)", "루 (ru)", "와 (wa)"] },
-  { kana: "ル", ko: "루", ans: "루 (ru)", options: ["루 (ru)", "레 (re)", "라 (ra)", "로 (ro)", "노 (no)"] },
-  { kana: "レ", ko: "레", ans: "레 (re)", options: ["레 (re)", "루 (ru)", "와 (wa)", "네 (ne)", "소 (so)"] },
-  { kana: "ロ", ko: "로", ans: "ロ (ro)", options: ["ロ (ro)", "코 (ko)", "루 (ru)", "고 (go)", "유 (yu)"] }
+  { kana: "ハ", ko: "하", ans: "하 (ha)", options: ["ハ (ha)", "호 (ho)", "바 (ba)", "파 (pa)", "와 (wa)"] },
+  { kana: "ホ", ko: "호", ans: "호 (ho)", options: ["ホ (ho)", "하 (ha)", "키 (ki)", "마 (ma)", "네 (ne)"] },
+  { kana: "マ", ko: "마", ans: "마 (ma)", options: ["マ (ma)", "무 (mu)", "아 (a)", "호 (ho)", "유 (yu)"] },
+  { kana: "ミ", ko: "미", ans: "미 (mi)", options: ["ミ (mi)", "니 (ni)", "시 (shi)", "사 (sa)", "치 (chi)"] },
+  { kana: "ム", ko: "무", ans: "무 (mu)", options: ["ム (mu)", "마 (ma)", "스 (su)", "라 (ra)", "누 (nu)"] },
+  { kana: "ラ", ko: "라", ans: "라 (ra)", options: ["ラ (ra)", "우 (u)", "후 (fu)", "루 (ru)", "와 (wa)"] },
+  { kana: "ル", ko: "루", ans: "루 (ru)", options: ["ル (ru)", "레 (re)", "라 (ra)", "로 (ro)", "노 (no)"] },
+  { kana: "レ", ko: "레", ans: "레 (re)", options: ["レ (re)", "루 (ru)", "와 (wa)", "네 (ne)", "소 (so)"] },
+  { kana: "ロ", ko: "로", ans: "로 (ro)", options: ["ロ (ro)", "코 (ko)", "루 (ru)", "고 (go)", "유 (yu)"] }
 ];
 
 // ---------------- [학습 모드 필수 데이터 추가] ----------------
@@ -166,7 +166,7 @@ const CULTURE_BY_UNIT = {
   3: [
     { q: "가라아게는 일본식 닭튀김이다.", ans: "O", tip: "가라아게는 닭고기 등에 전분을 입혀 튀긴 일본식 튀김 요리입니다." },
     { q: "일본 라면은 기본 양념에 따라 간장, 소금, 된장 라면 등으로 구분한다.", ans: "O", tip: "국물 맛에 따라 간장, 소금, 된장, 돈코쓰 라면 등이 있습니다." },
-    { 단돈가스는 시합이나 시험 등을 앞두고 먹는 경우가 많다.", ans: "O", tip: "돈가스의 '가쓰(カツ)'가 '이기다(かつ)'와 발음이 같기 때문입니다." },
+    { q: "일본에서는 시합이나 시험 등을 앞두고 돈가스를 먹는 경우가 많다.", ans: "O", tip: "돈가스의 '가쓰(カツ)'가 '이기다(かつ)'와 발음이 같기 때문입니다." },
     { q: "일본에서는 그릇을 바닥에 두고 먹는 것이 예의이다.", ans: "X", tip: "일본에서는 그릇을 손에 들고 젓가락으로 음식을 먹는 것이 일반적입니다." }
   ],
   4: [
