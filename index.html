@@ -1,343 +1,778 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>가나고 GO! - 고교 일본어 학습 플랫폼</title>
-  
-  <!-- Firebase SDK 라이브러리 -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-  <!-- 축하 폭죽(Confetti) 라이브러리 -->
-  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>일본어 쓰기 & 퀴즈 트레이너</title>
+    <style>
+        :root {
+            /* 말차(녹차)와 사쿠라(벚꽃) 테마 색상 */
+            --primary-color: #388e3c; /* 좀 더 화사한 녹차색 */
+            --primary-light: #f1f8e9;
+            --accent-color: #ffb7c5; /* 벚꽃 핑크 */
+            --accent-light: #fff0f3;
+            --bg-color: #fffaf0; /* 따뜻한 종이 느낌 */
+            --text-color: #3e3e3e;
+        }
+        body {
+            font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+            /* 배경에 아주 연한 벚꽃 핑크 그라데이션 적용 */
+            background: linear-gradient(180deg, #fffaf0 0%, #fff0f3 100%);
+            color: var(--text-color);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            /* 패드/모바일에서 아래로 스와이프할 때 새로고침 방지 */
+            overscroll-behavior-y: none; 
+        }
+        header {
+            width: 100%;
+            background-color: var(--primary-color);
+            padding: 14px 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-sizing: border-box;
+            color: white;
+        }
+        .header-title {
+            font-size: 1.15rem;
+            font-weight: 800;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .home-btn {
+            padding: 6px 14px;
+            font-size: 0.8rem;
+            border: none;
+            border-radius: 20px;
+            background: rgba(255,255,255,0.25);
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+        .home-btn:hover { background: rgba(255,255,255,0.4); }
 
-  <!-- 외부 스타일시트 -->
-  <link rel="stylesheet" href="style.css">
+        .main-container {
+            width: 100%;
+            max-width: 500px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 30px 15px; 
+            box-sizing: border-box;
+            justify-content: flex-start; 
+        }
+
+        .card {
+            background: white;
+            width: 100%;
+            border-radius: 20px;
+            padding: 25px 20px;
+            box-shadow: 0 8px 24px rgba(255, 183, 197, 0.2); 
+            border-top: 6px solid var(--accent-color); 
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            position: relative;
+        }
+
+        .hero-emoji {
+            font-size: 3rem;
+            margin-bottom: 5px;
+            animation: bounce 2s infinite ease-in-out;
+        }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+
+        .section-title {
+            font-size: 1.3rem;
+            font-weight: 900;
+            margin-bottom: 5px;
+            color: #2c3e50;
+        }
+        .section-desc {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        .back-nav-btn {
+            align-self: flex-start;
+            margin-bottom: 15px;
+            padding: 8px 16px;
+            font-size: 0.85rem;
+            border: none;
+            border-radius: 12px;
+            background: #f1f3f5;
+            cursor: pointer;
+            font-weight: bold;
+            color: #495057;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .menu-btn-group {
+            display: flex;
+            gap: 12px;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        .menu-select-btn {
+            flex: 1;
+            padding: 22px 10px;
+            font-size: 1.15rem;
+            font-weight: 800;
+            border: 2px solid var(--accent-light);
+            border-radius: 16px;
+            background: #fff;
+            color: #495057;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+        }
+        .menu-select-btn:hover, .menu-select-btn:active {
+            border-color: var(--accent-color);
+            background: var(--accent-light);
+            color: #d81b60;
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(255, 183, 197, 0.3);
+        }
+        .menu-desc {
+            font-size: 0.85rem; 
+            color: #888; 
+            font-weight: 600;
+            display: block;
+            margin-top: 6px;
+        }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 6px;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        .char-grid-btn {
+            aspect-ratio: 1;
+            font-size: 1.1rem;
+            border-radius: 12px;
+            border: 1px solid #e9ecef;
+            background: #fff;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.15s;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 4px;
+            box-sizing: border-box;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+        .char-grid-btn.selected {
+            border: 2px solid var(--primary-color);
+            background: var(--primary-light);
+            color: var(--primary-color);
+            transform: scale(1.05);
+        }
+        .char-grid-btn.passed {
+            background: var(--accent-light);
+            border-color: var(--accent-color);
+            color: #d81b60;
+        }
+
+        .canvas-container {
+            position: relative;
+            background-color: #fff;
+            box-shadow: inset 0 0 0 2px #e9ecef;
+            border-radius: 16px;
+            overflow: hidden;
+            width: 280px;
+            height: 280px;
+            margin: 12px 0;
+        }
+        canvas {
+            display: block;
+            touch-action: none;
+        }
+        #guideCanvas, #quizGuideCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+            opacity: 0.18;
+        }
+        #drawCanvas, #quizDrawCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 2;
+            cursor: crosshair;
+        }
+
+        .controls {
+            margin-top: 15px;
+            display: flex;
+            gap: 8px;
+            width: 100%;
+            justify-content: center;
+        }
+        button.action-btn {
+            padding: 12px 16px;
+            font-size: 0.9rem;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: 800;
+            transition: 0.2s;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.08);
+        }
+        button.action-btn:active { transform: scale(0.95); }
+        .undo-btn { background-color: #fff3cd; color: #856404; }
+        #clearBtn { background-color: #e9ecef; color: #495057; }
+        #submitBtn { background-color: var(--primary-color); color: white; }
+
+        .score-display { font-size: 1.4rem; font-weight: 900; margin-top: 8px; }
+        .status-msg { font-size: 0.95rem; font-weight: bold; margin-top: 4px; }
+        .pass { color: var(--primary-color); }
+        .fail { color: #E53935; }
+
+        .quiz-header-info {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            align-items: center;
+            font-size: 0.95rem;
+            color: #6c757d;
+            font-weight: 800;
+            margin-bottom: 5px;
+            padding: 0 10px;
+            box-sizing: border-box;
+        }
+        .quiz-type-badge {
+            background: var(--primary-light);
+            color: var(--primary-color);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 800;
+            margin-bottom: 12px;
+            display: inline-block;
+        }
+        .quiz-target-info {
+            font-size: 2.2rem;
+            font-weight: 900;
+            color: var(--primary-color);
+            margin: 5px 0 15px 0;
+            text-shadow: 1px 1px 0px rgba(0,0,0,0.05);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .audio-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 50%;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .audio-btn:hover {
+            background: var(--primary-light);
+        }
+
+        .hidden { display: none !important; }
+    </style>
 </head>
 <body>
+    <header>
+        <div class="header-title" onclick="goHome()">🇯🇵 가나고 트레이너</div>
+        <button id="homeBtn" class="home-btn hidden" onclick="goHome()">🏠 처음으로</button>
+    </header>
 
-<div class="app-container">
-  <!-- 상단 상태바 (상시 표시) -->
-  <div class="top-bar">
-    <div class="user-section">
-      <span class="user-tag" id="user-badge">👤 게스트</span>
-      <span class="point-tag" id="user-points" onclick="openShopModal()">💰 0P</span>
-      <button class="btn-shop-top" id="btn-shop" onclick="openShopModal()">🛒 칭호 상점</button>
-      <button class="btn-logout" id="btn-logout" onclick="handleLogout()">변경</button>
-    </div>
-    <span class="app-version" onclick="handleSecretTeacherTap()" title="교사용 관리자 진입 (연속 5번 터치)">v2.8 🎌</span>
-  </div>
+    <div class="main-container">
+        <!-- STEP 1: 문자 종류 선택 -->
+        <div id="stepCharSelect" class="card">
+            <div class="hero-emoji">🍡</div>
+            <div class="section-title">오늘도 간바레!</div>
+            <div class="section-desc">어떤 문자를 마스터해볼까요?</div>
+            
+            <div class="menu-btn-group">
+                <button class="menu-select-btn" onclick="selectKanaType('hira')">
+                    🌸 히라가나
+                    <span class="menu-desc">あいうえお</span>
+                </button>
+                <button class="menu-select-btn" onclick="selectKanaType('kata')">
+                    🍵 가타카나
+                    <span class="menu-desc">アイウエオ</span>
+                </button>
+            </div>
+        </div>
 
-  <!-- 1. 로그인 화면 -->
-  <div class="screen active" id="screen-login">
-    <div style="text-align: center; margin: 15px 0 10px 0;">
-      <span style="font-size: 46px; display: inline-block; animation: popIn 0.4s ease; cursor: pointer;" onclick="handleSecretTeacherTap()">🍱</span>
-    </div>
-    <h1 style="font-size: 24px; font-weight: 900; color: var(--primary); text-align: center; cursor: pointer; user-select: none;" onclick="handleSecretTeacherTap()">가나고 GO!</h1>
-    <p style="font-size: 13px; color: var(--text-muted); text-align: center; margin-bottom: 24px; font-weight: 600;">고교 일본어 기초 완성 & 주간 학급 대항 리그</p>
-    
-    <div class="input-group">
-      <label>학번 (예: 10315 ➔ 1학년 3반 자동 분류)</label>
-      <input type="text" id="input-student-id" placeholder="선생님 확인용 학번 입력">
-    </div>
-    <div class="input-group">
-      <label>이름 (실명)</label>
-      <input type="text" id="input-student-name" placeholder="선생님 확인용 실명 입력">
-    </div>
-    <div class="input-group">
-      <label>공개 닉네임 (친구 랭킹용)</label>
-      <input type="text" id="input-student-nick" placeholder="예: 도톤보리폭격기, 라멘왕">
-    </div>
-    <div class="input-group">
-      <label>🔒 입장코드 (선생님께 안내받은 코드)</label>
-      <input type="password" id="input-access-code" placeholder="입장코드 입력">
-    </div>
+        <!-- STEP 2: 학습/퀴즈 모드 선택 -->
+        <div id="stepModeSelect" class="card hidden">
+            <button class="back-nav-btn" onclick="goHome()">← 문자 다시 고르기</button>
+            <div class="hero-emoji">🎯</div>
+            <div class="section-title" id="selectedTypeTitle" style="margin-top: 5px;">히라가나 학습</div>
+            <div class="section-desc">원하는 학습 방식을 선택하세요!</div>
 
-    <button class="btn-3d btn-main" onclick="handleLogin()">🚀 학습 시작하기</button>
-  </div>
+            <div class="menu-btn-group" style="flex-direction: column;">
+                <button class="menu-select-btn" style="padding:16px 10px;" onclick="startMode('study')">✏️ 기본 쓰기 학습</button>
+                <button class="menu-select-btn" style="padding:16px 10px;" onclick="startMode('quiz')">🔥 랜덤 쓰기 퀴즈 (10문항)</button>
+            </div>
+        </div>
 
-  <!-- 2. 메인 화면 -->
-  <div class="screen" id="screen-main">
-    <!-- 주간 챌린지 상단 배너 -->
-    <div class="weekly-challenge-banner" onclick="showRanking()">
-      <div>
-        <div style="font-size: 11px; opacity: 0.9; font-weight: 600;">⚡ 주간 리그 진행 중 (월요일 0시 리셋)</div>
-        <div style="font-size: 13px; font-weight: 800; margin-top: 2px;" id="banner-weekly-text">우리 반 이번 주 점수 불러오는 중...</div>
-      </div>
-      <span class="weekly-dday-badge" id="banner-weekly-dday">D-?</span>
-    </div>
+        <!-- STEP 3-1: 기본 쓰기 학습 페이지 -->
+        <div id="modeStudy" class="card hidden" style="padding: 20px 15px;">
+            <button class="back-nav-btn" onclick="goToModeSelect()">← 모드 선택으로</button>
+            <div class="grid-container" id="kanaGrid" style="margin-top: 10px;"></div>
+            
+            <div style="background:var(--primary-light); color:var(--primary-color); padding:8px 16px; border-radius:20px; font-weight:800; font-size:1.1rem; margin:10px 0; display:flex; align-items:center; gap:8px;" id="currentTargetLabel">
+                현재 글자: あ [ 아 (a) ] 
+                <button class="audio-btn" onclick="playAudio(currentChar)" title="발음 듣기">🔊</button>
+            </div>
+            
+            <div class="canvas-container">
+                <canvas id="guideCanvas"></canvas>
+                <canvas id="drawCanvas"></canvas>
+            </div>
 
-    <div style="background: white; border: 2px solid var(--border); border-radius: 14px; padding: 12px 14px; margin-bottom: 12px; display: flex; align-items: center; gap: 10px;">
-      <span style="font-size: 26px; cursor: pointer; user-select: none;" onclick="handleSecretTeacherTap()" title="비밀 터치 5회">🍙</span>
-      <div style="flex-grow: 1;">
-        <div style="font-size: 13px; font-weight: 800; color: var(--text);" id="main-class-tag" onclick="handleSecretTeacherTap()">소속: 학급 불러오는 중...</div>
-        <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">문제를 풀어 이번 주 우리 반 순위를 올려보세요!</div>
-      </div>
-    </div>
+            <div class="controls">
+                <button class="action-btn undo-btn" onclick="studyEnv.undo()">↩️ 이전 획</button>
+                <button id="clearBtn" class="action-btn" onclick="studyEnv.clear()">🗑️ 지우기</button>
+                <button id="submitBtn" class="action-btn" onclick="checkScore()">💯 채점하기</button>
+            </div>
 
-    <div class="category-card speedrun-card" onclick="openSpeedrunModal()">
-      <div class="category-info">
-        <h3>🔥 가나 스피드런 (솔로 랭킹)</h3>
-        <p>10문항 개인 타임어택 (+10P / 주간 반 기여도 +10점)</p>
-      </div>
-      <span style="font-size: 22px;">⚡</span>
-    </div>
+            <div style="height: 55px; margin-top: 5px;">
+                <div id="scoreDisplay" class="score-display"></div>
+                <div id="statusMsg" class="status-msg"></div>
+            </div>
+        </div>
 
-    <div class="category-card pvp-card" onclick="openMultiLobbyModal()">
-      <div class="category-info">
-        <h3>⚔️ 실시간 멀티 배틀 (최대 8인)</h3>
-        <p>방 코드로 모여 동일한 10문제를 두고 펼치는 레이스</p>
-      </div>
-      <span style="font-size: 22px;">👥</span>
-    </div>
+        <!-- STEP 3-2: 랜덤 쓰기 퀴즈 페이지 -->
+        <div id="modeQuiz" class="card hidden" style="padding: 20px 15px;">
+            <button class="back-nav-btn" onclick="goToModeSelect()">← 모드 선택으로</button>
+            <div id="quizTypeBadge" class="quiz-type-badge">히라가나 퀴즈</div>
+            <div class="quiz-header-info">
+                <span id="quizProgressCount">문제 1 / 10</span>
+                <span>발음 문자를 써보세요</span>
+            </div>
+            <div class="quiz-target-info">
+                <span id="quizPromptText">아 (a)</span>
+                <button class="audio-btn" onclick="playAudio(currentQuizChar)" title="발음 듣기">🔊</button>
+            </div>
+            
+            <div class="canvas-container">
+                <canvas id="quizGuideCanvas"></canvas>
+                <canvas id="quizDrawCanvas"></canvas>
+            </div>
 
-    <div class="category-card card-vocab" onclick="openUnitSelectMode('vocab')">
-      <div class="category-info">
-        <h3 style="color: #065F46;">🅰️ 문자 / 어휘 영역 <span class="badge-status" id="badge-vocab">미완료</span></h3>
-        <p>교과서 1~4단원 단어 조립 퍼즐 (10문항 / +15P)</p>
-      </div>
-      <span style="font-size: 22px;">🧩</span>
-    </div>
-
-    <div class="category-card card-grammar" onclick="openUnitSelectMode('grammar')">
-      <div class="category-info">
-        <h3 style="color: #9A3412;">💬 문법 / 회화 영역 <span class="badge-status" id="badge-grammar">미완료</span></h3>
-        <p>교과서 1~4단원 핵심 문장 어순 배열 (10문항 / +20P)</p>
-      </div>
-      <span style="font-size: 22px;">✍️</span>
-    </div>
-
-    <div class="category-card card-culture" onclick="openUnitSelectMode('culture')">
-      <div class="category-info">
-        <h3 style="color: #9D174D;">🏮 문화 / 흥미 영역 <span class="badge-status" id="badge-culture">미완료</span></h3>
-        <p>교과서 1~4단원 문화 유퀴즈 (10문항 / +15P)</p>
-      </div>
-      <span style="font-size: 22px;">⭕</span>
+            <div class="controls">
+                <button class="action-btn undo-btn" onclick="quizEnv.undo()">↩️ 이전 획</button>
+                <button class="action-btn" id="quizClearBtn" onclick="quizEnv.clear()">🗑️ 지우기</button>
+                <button class="action-btn" style="background:var(--accent-color); color:#d81b60;" onclick="toggleQuizAnswer()">👀 정답</button>
+                <button class="action-btn" style="background:var(--primary-color); color:white;" onclick="nextQuiz()" id="nextQuizBtn">다음 ▶</button>
+            </div>
+        </div>
     </div>
 
-    <div class="category-card card-note" onclick="openWrongNoteScreen()">
-      <div class="category-info">
-        <h3 style="color: #334155;">📝 내 오답 노트</h3>
-        <p>내가 헷갈려했던 글자와 문항 복습하기</p>
-      </div>
-      <span style="font-size: 20px;">🔍</span>
-    </div>
+    <script>
+        const HIRA_LIST = [
+            "あ","い","う","え","お",
+            "か","き","く","け","こ",
+            "さ","し","す","せ","そ",
+            "た","ち","つ","て","と",
+            "な","に","ぬ","ね","の",
+            "は","ひ","ふ","へ","ほ",
+            "ま","み","む","め","も",
+            "や","ゆ","よ",
+            "ら","り","る","れ","ろ",
+            "わ","を","ん"
+        ];
+        const KATA_LIST = [
+            "ア","イ","ウ","エ","オ",
+            "カ","キ","ク","ケ","コ",
+            "サ","シ","ス","セ","ソ",
+            "タ","チ","ツ","テ","ト",
+            "ナ","ニ","ヌ","ネ","ノ",
+            "ハ","ヒ","フ","ヘ","ホ",
+            "マ","ミ","ム","メ","モ",
+            "ヤ","ユ","ヨ",
+            "ラ","リ","ル","レ","ロ",
+            "ワ","ヲ","ン"
+        ];
 
-    <div class="category-card" onclick="openActivityLog()" style="border-color:#CBD5E1; border-bottom-color:#94A3B8;">
-      <div class="category-info">
-        <h3 style="color: #475569;">📅 내 학습 기록</h3>
-        <p>최근 나의 로그인 및 퀴즈 완료 타임라인 보기</p>
-      </div>
-      <span style="font-size: 20px;">📜</span>
-    </div>
+        const KANA_INFO = {
+            "あ":"아 (a)", "い":"이 (i)", "う":"우 (u)", "え":"에 (e)", "お":"오 (o)",
+            "か":"카 (ka)", "き":"키 (ki)", "く":"쿠 (ku)", "け":"케 (ke)", "こ":"코 (ko)",
+            "さ":"사 (sa)", "し":"시 (shi/si)", "す":"수 (su)", "せ":"세 (se)", "そ":"소 (so)",
+            "た":"타 (ta)", "ち":"치 (chi/ti)", "つ":"츠 (tsu/tu)", "て":"테 (te)", "と":"토 (to)",
+            "な":"나 (na)", "に":"니 (ni)", "ぬ":"누 (nu)", "ね":"네 (ne)", "の":"노 (no)",
+            "は":"하 (ha)", "ひ":"히 (hi)", "ふ":"후 (fu/hu)", "へ":"헤 (he)", "ほ":"호 (ho)",
+            "ま":"마 (ma)", "み":"미 (mi)", "む":"무 (mu)", "め":"메 (me)", "も":"모 (mo)",
+            "や":"야 (ya)", "ゆ":"유 (yu)", "よ":"요 (yo)",
+            "ら":"라 (ra)", "り":"리 (ri)", "る":"루 (ru)", "れ":"레 (re)", "ろ":"로 (ro)",
+            "わ":"와 (wa)", "を":"오 (wo)", "ん":"응 (n)",
+            "ア":"아 (a)", "イ":"이 (i)", "ウ":"우 (u)", "エ":"에 (e)", "オ":"오 (o)",
+            "カ":"카 (ka)", "キ":"키 (ki)", "ク":"쿠 (ku)", "ケ":"케 (ke)", "コ":"코 (ko)",
+            "サ":"사 (sa)", "シ":"시 (shi/si)", "ス":"수 (su)", "セ":"세 (se)", "ソ":"소 (so)",
+            "タ":"타 (ta)", "チ":"치 (chi/ti)", "ツ":"츠 (tsu/tu)", "テ":"테 (te)", "ト":"토 (to)",
+            "ナ":"나 (na)", "ニ":"니 (ni)", "ヌ":"누 (nu)", "ネ":"네 (ne)", "ノ":"노 (no)",
+            "ハ":"하 (ha)", "ヒ":"히 (hi)", "フ":"후 (fu/hu)", "ヘ":"헤 (he)", "ホ":"호 (ho)",
+            "マ":"마 (ma)", "ミ":"미 (mi)", "ム":"무 (mu)", "メ":"메 (me)", "モ":"모 (mo)",
+            "ヤ":"야 (ya)", "ユ":"유 (yu)", "ヨ":"요 (yo)",
+            "ラ":"라 (ra)", "リ":"리 (ri)", "ル":"루 (ru)", "レ":"레 (re)", "ロ":"로 (ro)",
+            "ワ":"와 (wa)", "ヲ":"오 (wo)", "ン":"응 (n)"
+        };
 
-    <button class="btn-3d btn-accent" style="margin-top: auto;" onclick="showRanking()">🏆 주간 랭킹 & 명예의 전당</button>
-  </div>
+        let currentType = 'hira';
+        let currentChar = 'あ';
+        let passedChars = {};
+        let isAnswerShown = false;
 
-  <!-- 3. 실시간 배틀 대기실 화면 -->
-  <div class="screen" id="screen-lobby">
-    <div class="quiz-header">
-      <button class="btn-nav-back" onclick="leaveMultiRoom(); goToMain();">← 방 나가기</button>
-      <h2 style="font-size: 16px; font-weight:800;">⚔️ 실시간 배틀 대기실</h2>
-      <span></span>
-    </div>
-    
-    <div class="lobby-code-box">
-      <div style="font-size: 12px; color: #991B1B; font-weight: bold; margin-bottom: 4px;">친구들에게 입장 코드를 공유하세요 (최대 8명)</div>
-      <div class="lobby-code-text" id="lobby-code-display">0000</div>
-    </div>
+        let quizList = [];
+        let quizIndex = 0;
+        let currentQuizChar = 'あ';
 
-    <div style="font-size: 13px; font-weight: 700; margin-bottom: 6px; display: flex; justify-content: space-between;">
-      <span>참 참여 친구 목록</span>
-      <span id="lobby-count-display" style="color: var(--primary);">1 / 8명</span>
-    </div>
-    <div class="participant-list" id="lobby-participant-list"></div>
+        function playAudio(text) {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'ja-JP'; 
+                utterance.rate = 0.9;     
+                window.speechSynthesis.speak(utterance);
+            }
+        }
 
-    <div id="host-controls" style="margin-top: auto; display: none;">
-      <p style="font-size: 12px; color: var(--text-muted); text-align: center; margin-bottom: 8px;">방장만 게임을 시작할 수 있습니다. (2명 이상 권장)</p>
-      <button class="btn-3d btn-danger-3d" onclick="hostStartMultiGame()">🔥 8인 동시 레이스 시작!</button>
-    </div>
-    <div id="guest-controls" style="margin-top: auto; display: none;">
-      <p style="font-size: 13px; color: #DC2626; font-weight: bold; text-align: center; padding: 12px 0;">방장이 게임을 시작하기를 기다리고 있습니다...</p>
-    </div>
-  </div>
+        function goHome() {
+            document.getElementById('stepCharSelect').classList.remove('hidden');
+            document.getElementById('stepModeSelect').classList.add('hidden');
+            document.getElementById('modeStudy').classList.add('hidden');
+            document.getElementById('modeQuiz').classList.add('hidden');
+            document.getElementById('homeBtn').classList.add('hidden');
+        }
 
-  <!-- 4. 공통 퀴즈/게임 화면 -->
-  <div class="screen" id="screen-game">
-    <div class="quiz-header">
-      <button class="btn-nav-back" onclick="handleGameBack()">← 나가기</button>
-      <span id="quiz-title" style="font-size: 14px; font-weight: 800; color: var(--primary);">모드명</span>
-      <span id="quiz-progress" style="font-size: 14px; font-weight: 800;">1 / 10</span>
-    </div>
+        function goToModeSelect() {
+            document.getElementById('stepModeSelect').classList.remove('hidden');
+            document.getElementById('modeStudy').classList.add('hidden');
+            document.getElementById('modeQuiz').classList.add('hidden');
+            document.getElementById('homeBtn').classList.remove('hidden');
+        }
 
-    <div class="multi-race-container" id="multi-race-box" style="display: none;">
-      <div style="font-size: 11px; font-weight: bold; color: #991B1B; margin-bottom: 6px;">🏁 실시간 8인 라이브 레이스</div>
-      <div id="multi-race-track-list"></div>
-    </div>
+        function selectKanaType(type) {
+            currentType = type;
+            document.getElementById('selectedTypeTitle').innerText = type === 'hira' ? '히라가나 학습' : '가타카나 학습';
+            document.getElementById('stepCharSelect').classList.add('hidden');
+            document.getElementById('stepModeSelect').classList.remove('hidden');
+            document.getElementById('homeBtn').classList.remove('hidden');
+        }
 
-    <div class="unit-selector" id="unit-tabs" style="display: none;">
-      <button class="unit-btn active" onclick="switchUnitTab(1)">1단원</button>
-      <button class="unit-btn" onclick="switchUnitTab(2)">2단원</button>
-      <button class="unit-btn" onclick="switchUnitTab(3)">3단원</button>
-      <button class="unit-btn" onclick="switchUnitTab(4)">4단원</button>
-    </div>
+        function startMode(mode) {
+            document.getElementById('stepModeSelect').classList.add('hidden');
+            if (mode === 'study') {
+                document.getElementById('modeStudy').classList.remove('hidden');
+                currentChar = currentType === 'hira' ? 'あ' : 'ア';
+                document.getElementById('currentTargetLabel').innerHTML = `현재 글자: ${currentChar} [ ${KANA_INFO[currentChar]} ] <button class="audio-btn" onclick="playAudio('${currentChar}')" title="발음 듣기">🔊</button>`;
+                renderKanaGrid();
+                studyEnv.clear();
+                drawGuide(studyEnv, currentChar);
+            } else if (mode === 'quiz') {
+                document.getElementById('modeQuiz').classList.remove('hidden');
+                document.getElementById('quizTypeBadge').innerText = currentType === 'hira' ? '히라가나 퀴즈' : '가타카나 퀴즈';
+                initQuizSet();
+            }
+        }
 
-    <div class="question-box">
-      <button class="speaker-btn" id="audio-btn" onclick="playCurrentAudio()">🔊</button>
-      <div id="quiz-main-content" class="kana-main">あ</div>
-      <div id="quiz-sub-content" class="sub-prompt">문제를 읽고 정답을 선택하세요</div>
-      <div id="review-bubble" class="review-bubble"></div>
-    </div>
+        function setupCanvasPair(drawCanvasId, guideCanvasId) {
+            const drawCanvas = document.getElementById(drawCanvasId);
+            const guideCanvas = document.getElementById(guideCanvasId);
+            
+            const drawCtx = drawCanvas.getContext('2d', { willReadFrequently: true });
+            const guideCtx = guideCanvas.getContext('2d', { willReadFrequently: true });
+            
+            const size = 280;
+            let dpr = window.devicePixelRatio || 1;
+            let isDrawing = false;
+            let strokes = [];
+            let currentStroke = [];
+            let lastX = 0, lastY = 0;
 
-    <!-- 조립형 퍼즐(어휘/문법) 영역 -->
-    <div id="builder-container" style="display: none;">
-      <div class="hint-tap">조합창의 카드를 누르면 취소됩니다</div>
-      <div class="assembled-word" id="assembled-box"></div>
-      <div class="pool-blocks" id="pool-box"></div>
-      <button class="btn-3d btn-submit-action" id="btn-submit-builder" onclick="submitBuilderAnswer()">정답 확인 및 제출 ➔</button>
-    </div>
+            drawCanvas.width = size * dpr;
+            drawCanvas.height = size * dpr;
+            guideCanvas.width = size * dpr;
+            guideCanvas.height = size * dpr;
+            drawCanvas.style.width = size + 'px';
+            drawCanvas.style.height = size + 'px';
+            guideCanvas.style.width = size + 'px';
+            guideCanvas.style.height = size + 'px';
 
-    <!-- 5지선다 스피드런 영역 -->
-    <div class="options-grid-5" id="options-box-5" style="display: none;"></div>
+            drawCtx.scale(dpr, dpr);
+            guideCtx.scale(dpr, dpr);
 
-    <!-- 문화 OX 퀴즈 영역 -->
-    <div id="ox-container" style="display: none;">
-      <div class="options-grid-ox" id="options-box-ox"></div>
-      <button class="btn-3d btn-submit-action" id="btn-submit-ox" onclick="submitOxAnswer()">선택 완료 및 답안 제출 ➔</button>
-    </div>
-  </div>
+            drawCtx.lineCap = 'round';
+            drawCtx.lineJoin = 'round';
+            drawCtx.lineWidth = 11;
+            drawCtx.strokeStyle = '#2c3e50';
 
-  <!-- 5. 실시간 랭킹 화면 -->
-  <div class="screen" id="screen-ranking">
-    <div class="quiz-header">
-      <button class="btn-nav-back" onclick="goToMain()">← 뒤로</button>
-      <h2 style="font-size: 17px; font-weight:800;">🔥 명예의 전당</h2>
-      <span></span>
-    </div>
-    
-    <div class="rank-tabs">
-      <button class="rank-tab-btn active" id="tab-rank-weekly-class" onclick="switchRankingTab('weekly-class')" style="color:var(--accent);">🏆주간학급</button>
-      <button class="rank-tab-btn" id="tab-rank-weekly-user" onclick="switchRankingTab('weekly-user')">🔥주간개인</button>
-      <button class="rank-tab-btn" id="tab-rank-class" onclick="switchRankingTab('class')">누적학급</button>
-      <button class="rank-tab-btn" id="tab-rank-all" onclick="switchRankingTab('all')">스피드런</button>
-    </div>
+            function redrawStrokes() {
+                drawCtx.clearRect(0, 0, size, size);
+                drawCtx.beginPath();
+                strokes.forEach(stroke => {
+                    if (stroke.length < 2) return;
+                    drawCtx.beginPath();
+                    drawCtx.moveTo(stroke[0].x, stroke[0].y);
+                    for (let i = 1; i < stroke.length; i++) {
+                        drawCtx.lineTo(stroke[i].x, stroke[i].y);
+                    }
+                    drawCtx.lineWidth = 11;
+                    drawCtx.stroke();
+                });
+            }
 
-    <div class="leaderboard-list" id="ranking-list"></div>
-    <div id="my-ranking-box"></div>
-  </div>
+            drawCanvas.addEventListener('touchstart', (e) => { e.preventDefault(); }, { passive: false });
+            drawCanvas.addEventListener('touchmove', (e) => { e.preventDefault(); }, { passive: false });
+            drawCanvas.addEventListener('touchend', (e) => { e.preventDefault(); }, { passive: false });
 
-  <!-- 6. 내 오답 노트 화면 -->
-  <div class="screen" id="screen-wrong-note">
-    <div class="quiz-header">
-      <button class="btn-nav-back" onclick="goToMain()">← 뒤로</button>
-      <h2 style="font-size: 17px; font-weight:800;">📝 내 오답 노트</h2>
-      <button style="background:none; border:none; color:var(--danger); font-size:12px; font-weight:bold; cursor:pointer;" onclick="clearWrongNotes()">비우기</button>
-    </div>
-    <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">내가 틀렸던 글자와 정답을 비교해 보세요.</p>
-    <div class="wrong-list" id="wrong-note-list"></div>
-  </div>
+            drawCanvas.addEventListener('pointerdown', (e) => {
+                isDrawing = true;
+                const rect = drawCanvas.getBoundingClientRect();
+                lastX = e.clientX - rect.left;
+                lastY = e.clientY - rect.top;
+                currentStroke = [{x: lastX, y: lastY}];
+                drawCtx.beginPath();
+            });
 
-  <!-- 7. 교사용 관리자 화면 -->
-  <div class="screen" id="screen-teacher">
-    <div class="quiz-header">
-      <button class="btn-nav-back" onclick="goToMain()">← 닫기</button>
-      <h2 style="font-size: 16px; font-weight:800;">👩‍🏫 교사용 학생 관리 대시보드</h2>
-      <span></span>
-    </div>
-    <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">실명 매핑, 주간 포인트 현황 및 일괄 초기화</p>
+            drawCanvas.addEventListener('pointermove', (e) => {
+                if (!isDrawing) return;
+                e.preventDefault();
+                const rect = drawCanvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                drawCtx.beginPath();
+                drawCtx.moveTo(lastX, lastY);
+                drawCtx.lineTo(x, y);
+                drawCtx.lineWidth = (e.pointerType === 'pen' && e.pressure) ? 11 + (e.pressure * 4) : 11;
+                drawCtx.stroke();
+                
+                lastX = x;
+                lastY = y;
+                currentStroke.push({x, y});
+            });
 
-    <div class="admin-bar">
-      <button class="btn-3d btn-danger-3d" style="padding: 10px; font-size: 12px;" onclick="resetSpeedrunRanking()">🔥 전체 스피드런 기록만 초기화</button>
-      <button class="btn-3d" style="background:#475569; border-bottom:4px solid #1E293B; padding: 10px; font-size: 12px;" onclick="resetAllStudentData()">⚠️ 학생 명단 유지 + 진도/포인트/기록/칭호 완전 리셋</button>
-    </div>
+            const stop = () => {
+                if (isDrawing) {
+                    isDrawing = false;
+                    if (currentStroke.length > 1) {
+                        strokes.push([...currentStroke]);
+                    }
+                    currentStroke = [];
+                    drawCtx.beginPath();
+                }
+            };
+            drawCanvas.addEventListener('pointerup', stop);
+            drawCanvas.addEventListener('pointerout', stop);
 
-    <table class="teacher-table">
-      <thead>
-        <tr>
-          <th>학급</th>
-          <th>이름</th>
-          <th>닉네임(칭호)</th>
-          <th>어휘</th>
-          <th>회화</th>
-          <th>문화</th>
-          <th>이번주P</th>
-          <th>누적P</th>
-          <th>관리</th>
-        </tr>
-      </thead>
-      <tbody id="teacher-data-body"></tbody>
-    </table>
-  </div>
+            return { 
+                drawCanvas, guideCanvas, drawCtx, guideCtx, size, dpr,
+                clear: function() {
+                    strokes.length = 0;
+                    currentStroke.length = 0;
+                    drawCtx.clearRect(0, 0, size, size);
+                    drawCtx.beginPath();
+                    if (drawCanvasId === 'drawCanvas') {
+                        document.getElementById('scoreDisplay').innerText = '';
+                        document.getElementById('statusMsg').innerText = '';
+                    }
+                },
+                undo: function() {
+                    if (strokes.length > 0) {
+                        strokes.pop();
+                        redrawStrokes();
+                    } else {
+                        drawCtx.clearRect(0, 0, size, size);
+                        drawCtx.beginPath();
+                    }
+                }
+            };
+        }
 
-  <!-- 11. 내 학습 기록 화면 -->
-  <div class="screen" id="screen-activity-log">
-    <div class="quiz-header">
-      <button class="btn-nav-back" onclick="goToMain()">← 뒤로</button>
-      <h2 style="font-size: 17px; font-weight:800;">📅 내 학습 기록</h2>
-      <span></span>
-    </div>
-    <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">최근 50개의 학습 및 활동 내역입니다.</p>
-    <div class="wrong-list" id="activity-log-list"></div>
-  </div>
+        const studyEnv = setupCanvasPair('drawCanvas', 'guideCanvas');
+        const quizEnv = setupCanvasPair('quizDrawCanvas', 'quizGuideCanvas');
 
-  <!-- 8. 칭호 상점 모달 -->
-  <div class="modal-overlay" id="shop-modal" style="display: none;">
-    <div class="modal-box">
-      <div class="modal-title">🛒 포인트 칭호 상점</div>
-      <p style="font-size:12px; color:var(--text-muted); text-align:center; margin-bottom:12px;">
-        내 보유 포인트: <strong style="color:var(--accent);" id="shop-my-points">0P</strong>
-      </p>
-      <div id="shop-items-container"></div>
-      <button class="btn-3d btn-back" onclick="closeShopModal()">닫기</button>
-    </div>
-  </div>
+        function renderKanaGrid() {
+            const grid = document.getElementById('kanaGrid');
+            if (!grid) return;
+            grid.innerHTML = '';
+            const list = currentType === 'hira' ? HIRA_LIST : KATA_LIST;
+            list.forEach(ch => {
+                const btn = document.createElement('button');
+                let className = 'char-grid-btn';
+                if (ch === currentChar) className += ' selected';
+                if (passedChars[ch]) className += ' passed';
+                
+                btn.className = className;
+                const info = KANA_INFO[ch] || "";
+                btn.innerHTML = `${ch}<br><span style="font-size:0.75rem; font-weight:normal; color:#888;">${info}</span>`;
+                
+                btn.onclick = () => {
+                    currentChar = ch;
+                    document.getElementById('currentTargetLabel').innerHTML = `현재 글자: ${ch} [ ${KANA_INFO[ch]} ] <button class="audio-btn" onclick="playAudio('${ch}')" title="발음 듣기">🔊</button>`;
+                    playAudio(ch);
+                    renderKanaGrid();
+                    studyEnv.clear();
+                    drawGuide(studyEnv, currentChar);
+                };
+                grid.appendChild(btn);
+            });
+        }
 
-  <!-- 9. 스피드런 솔로 모드 선택 모달 -->
-  <div class="modal-overlay" id="speedrun-modal" style="display: none;">
-    <div class="modal-box">
-      <div class="modal-title">⚡ 스피드런 모드 선택</div>
-      <button class="mode-select-btn" onclick="startSelectedSpeedrun('all')">
-        <span>🔥 통합 가나 스피드런 (전체 믹스)</span>
-        <span>👉</span>
-      </button>
-      <button class="mode-select-btn" onclick="startSelectedSpeedrun('hira')">
-        <span>あ 히라가나 50음도 마스터</span>
-        <span>👉</span>
-      </button>
-      <button class="mode-select-btn" onclick="startSelectedSpeedrun('kata')">
-        <span>ア 가타카나 50음도 마스터</span>
-        <span>👉</span>
-      </button>
-      <button class="btn-3d btn-back" onclick="closeSpeedrunModal()">닫기</button>
-    </div>
-  </div>
+        function drawGuide(env, char) {
+            env.guideCtx.clearRect(0, 0, env.size, env.size);
+            env.guideCtx.font = "190px 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
+            env.guideCtx.textAlign = "center";
+            env.guideCtx.textBaseline = "middle";
+            env.guideCtx.fillStyle = "#000";
+            env.guideCtx.fillText(char, env.size / 2, env.size / 2 + 8);
+        }
 
-  <!-- 10. 실시간 멀티 배틀 로비 모달 -->
-  <div class="modal-overlay" id="multi-lobby-modal" style="display: none;">
-    <div class="modal-box">
-      <div class="modal-title">⚔️ 실시간 멀티 배틀 (최대 8인)</div>
-      <p style="font-size:12px; color:var(--text-muted); text-align:center; margin-bottom:14px;">
-        친구들과 동시에 방에 접속해 똑같은 10문제를 두고 경쟁합니다!
-      </p>
-      
-      <button class="btn-3d btn-danger-3d" style="margin-bottom:14px;" onclick="createMultiRoom()">
-        👑 새로운 방 만들기 (방장)
-      </button>
+        function checkScore() {
+            const score = calculateCanvasScore(studyEnv, currentChar);
+            const scoreEl = document.getElementById('scoreDisplay');
+            const statusEl = document.getElementById('statusMsg');
 
-      <div style="text-align:center; font-size:12px; color:var(--text-muted); margin-bottom:8px;">또는 초대 코드로 참여하기</div>
-      <div class="input-group" style="margin-bottom:8px;">
-        <input type="text" id="input-room-code" placeholder="4자리 코드 입력 (예: 5821)" maxlength="6" style="text-align:center; font-size:20px; font-weight:bold; letter-spacing:3px;">
-      </div>
-      <button class="btn-3d btn-main" style="margin-top:0;" onclick="joinMultiRoom()">
-        🚪 방 참여하기
-      </button>
+            scoreEl.innerText = `${score}/100점`;
+            if (score >= 80) {
+                scoreEl.className = 'score-display pass';
+                statusEl.className = 'status-msg pass';
+                statusEl.innerText = '스고이! 통과 💮';
+                passedChars[currentChar] = true;
+                renderKanaGrid();
+            } else {
+                scoreEl.className = 'score-display fail';
+                statusEl.className = 'status-msg fail';
+                statusEl.innerText = '다시 써보세요 💦';
+            }
+        }
 
-      <button class="btn-3d btn-back" onclick="closeMultiLobbyModal()">닫기</button>
-    </div>
-  </div>
-</div>
+        function calculateCanvasScore(env, targetChar) {
+            const drawData = env.drawCtx.getImageData(0, 0, env.drawCanvas.width, env.drawCanvas.height).data;
+            
+            const bufferCanvas = document.createElement('canvas');
+            bufferCanvas.width = env.drawCanvas.width;
+            bufferCanvas.height = env.drawCanvas.height;
+            const bCtx = bufferCanvas.getContext('2d', { willReadFrequently: true });
+            
+            bCtx.scale(env.dpr, env.dpr);
+            bCtx.font = "190px 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
+            bCtx.textAlign = "center";
+            bCtx.textBaseline = "middle";
+            bCtx.lineWidth = 14;
+            bCtx.lineJoin = 'round';
+            bCtx.strokeStyle = "black";
+            bCtx.strokeText(targetChar, env.size / 2, env.size / 2 + 8);
+            bCtx.fillStyle = "black";
+            bCtx.fillText(targetChar, env.size / 2, env.size / 2 + 8);
+            
+            const guideData = bCtx.getImageData(0, 0, env.drawCanvas.width, env.drawCanvas.height).data;
+            
+            let drawnPixels = 0;
+            let outOfBoundsPixels = 0;
 
-<script src="data.js"></script>
-<script src="app.js"></script>
+            for (let i = 0; i < drawData.length; i += 4) {
+                if (drawData[i + 3] > 10) {
+                    drawnPixels++;
+                    if (guideData[i + 3] < 10) outOfBoundsPixels++;
+                }
+            }
+
+            if (drawnPixels === 0) return 0;
+            const outRatio = outOfBoundsPixels / drawnPixels;
+            let score = Math.round(100 - (outRatio * 250));
+            return Math.max(0, Math.min(100, score));
+        }
+
+        function initQuizSet() {
+            const list = [...(currentType === 'hira' ? HIRA_LIST : KATA_LIST)];
+            quizList = list.sort(() => Math.random() - 0.5).slice(0, 10);
+            quizIndex = 0;
+            loadQuizItem();
+        }
+
+        function loadQuizItem() {
+            isAnswerShown = false;
+            quizEnv.clear();
+            quizEnv.guideCtx.clearRect(0, 0, quizEnv.size, quizEnv.size);
+
+            if (quizIndex < quizList.length) {
+                currentQuizChar = quizList[quizIndex];
+                document.getElementById('quizProgressCount').innerText = `문제 ${quizIndex + 1} / 10`;
+                document.getElementById('quizPromptText').innerText = KANA_INFO[currentQuizChar];
+                document.getElementById('nextQuizBtn').innerText = quizIndex === 9 ? '완료 🎉' : '다음 ▶';
+                
+                // 퀴즈 문제 로드 시 자동으로 발음 재생
+                playAudio(currentQuizChar);
+            } else {
+                document.getElementById('quizProgressCount').innerText = '세트 완료!';
+                document.getElementById('quizPromptText').innerText = '🎉 참 잘했어요!';
+                
+                // 스피커 아이콘 숨기기
+                const audioBtn = document.querySelector('.quiz-target-info .audio-btn');
+                if(audioBtn) audioBtn.style.display = 'none';
+
+                quizEnv.clear();
+                quizEnv.guideCtx.font = "24px sans-serif";
+                quizEnv.guideCtx.fillStyle = "#388e3c";
+                quizEnv.guideCtx.textAlign = "center";
+                quizEnv.guideCtx.fillText("수고하셨습니다!", quizEnv.size / 2, quizEnv.size / 2);
+                document.getElementById('nextQuizBtn').innerText = '다시 풀기 🔄';
+                quizIndex = -1;
+            }
+        }
+
+        function nextQuiz() {
+            if (quizIndex === -1) {
+                // 다시 시작할 때 스피커 아이콘 다시 보이기
+                const audioBtn = document.querySelector('.quiz-target-info .audio-btn');
+                if(audioBtn) audioBtn.style.display = 'flex';
+                
+                initQuizSet();
+                return;
+            }
+            quizIndex++;
+            loadQuizItem();
+        }
+
+        function toggleQuizAnswer() {
+            if (quizIndex === -1) return;
+            if (!isAnswerShown) {
+                drawGuide(quizEnv, currentQuizChar);
+                isAnswerShown = true;
+            } else {
+                quizEnv.guideCtx.clearRect(0, 0, quizEnv.size, quizEnv.size);
+                isAnswerShown = false;
+            }
+        }
+    </script>
 </body>
 </html>
